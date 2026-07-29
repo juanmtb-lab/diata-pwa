@@ -1,0 +1,17 @@
+{
+  "short_name": "Diata",
+  "name": "Diata - Menús Semanales y Lista de la Compra",
+  "description": "Planificación diaria de comidas y lista de la compra inteligente sincronizada.",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "display": "standalone",
+  "orientation": "portrait"
+}

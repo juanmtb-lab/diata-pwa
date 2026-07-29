@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Diata - Menús Semanales y Lista de la Compra</title>
+  <meta name="description" content="Diata: Gestión inteligente de menús semanales de hogar, recetas y lista de la compra." />
+  
+  <!-- Soporte PWA e Instalación Móvil (iOS & Android) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Diata" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  
+  <!-- Tipografía Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b'
+            },
+            accent: {
+              500: '#6366f1',
+              600: '#4f46e5'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Estética Minimalista, Serena y Moderna */
+    html, body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: none;
+    }
+    
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.25);
+    }
+    
+    .light .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+    }
+
+    button, input, select, div {
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .mobile-safe-pb {
+      padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen mobile-safe-pb md:pb-8 transition-colors duration-200 light:bg-slate-50 light:text-slate-900">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 dark:bg-slate-900/90 light:bg-white/90 backdrop-blur-md border-b border-slate-800 light:border-slate-200 px-4 py-3 shadow-sm">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <!-- Logo y Título -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="appNav.navigate('landing')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-emerald-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+          <i data-lucide="utensils" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-xl leading-tight tracking-tight text-white light:text-slate-900 flex items-center gap-1.5">
+            Diata
+            <span class="text-[10px] font-normal px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">Día & Dieta</span>
+          </h1>
+          <p class="text-xs text-slate-400 light:text-slate-500 flex items-center gap-1">
+            <span id="connection-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+            <span id="connection-status-text">Online</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Acciones de Cabecera -->
+      <div class="flex items-center space-x-2">
+        <!-- Selector Modo Oscuro/Claro -->
+        <button id="btn-theme-toggle" class="p-2 rounded-lg bg-slate-800 light:bg-slate-100 text-slate-300 light:text-slate-600 hover:text-white transition">
+          <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+          <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+        </button>
+
+        <!-- Botón Ajustes/BBDD -->
+        <button onclick="appNav.navigate('settings')" class="p-2 rounded-lg bg-slate-800 light:bg-slate-100 text-slate-300 light:text-slate-600 hover:text-white transition">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL (SPA) -->
+  <main class="max-w-4xl mx-auto px-4 py-6">
+
+    <!-- 1. PANTALLA LANDING QR (ACCESO RÁPIDO FRIGORÍFICO) -->
+    <section id="view-landing" class="view-section space-y-6">
+      <div class="text-center py-4">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20 mb-3">
+          <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> Escaneado rápido desde frigorífico
+        </span>
+        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white light:text-slate-900">¿Qué necesitas gestionar hoy?</h2>
+        <p class="text-slate-400 light:text-slate-600 text-sm mt-1">Acceso directo a las funciones principales de tu hogar.</p>
+      </div>
+
+      <!-- TARJETAS DESTACADAS DE ACCESO RÁPIDO -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 🛒 Tarjeta Lista de Compra -->
+        <div onclick="appNav.navigate('shopping')" class="glass-card p-6 rounded-2xl border cursor-pointer group hover:border-brand-500/50 transition-all transform active:scale-95 shadow-xl relative overflow-hidden">
+          <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl group-hover:bg-brand-500/20 transition"></div>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400 group-hover:scale-110 transition-transform">
+              <i data-lucide="shopping-cart" class="w-8 h-8"></i>
+            </div>
+            <span id="badge-landing-shopping-count" class="px-3 py-1 rounded-full text-xs font-bold bg-brand-500 text-slate-950">
+              0 pendientes
+            </span>
+          </div>
+          <div class="mt-6">
+            <h3 class="text-xl font-bold text-white light:text-slate-900 group-hover:text-brand-400 transition">🛒 Lista de la Compra</h3>
+            <p class="text-slate-400 light:text-slate-600 text-sm mt-1">Revisa el stock, añade productos al vuelo y marca lo comprado.</p>
+          </div>
+          <div class="mt-4 flex items-center text-xs font-semibold text-brand-400 group-hover:translate-x-1 transition-transform">
+            Abrir lista <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+          </div>
+        </div>
+
+        <!-- 📅 Tarjeta Calendario Semanal -->
+        <div onclick="appNav.navigate('calendar')" class="glass-card p-6 rounded-2xl border cursor-pointer group hover:border-accent-500/50 transition-all transform active:scale-95 shadow-xl relative overflow-hidden">
+          <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-accent-500/10 rounded-full blur-2xl group-hover:bg-accent-500/20 transition"></div>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl bg-accent-500/20 border border-accent-500/30 flex items-center justify-center text-accent-400 group-hover:scale-110 transition-transform">
+              <i data-lucide="calendar-days" class="w-8 h-8"></i>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-accent-500 text-white">
+              7 días
+            </span>
+          </div>
+          <div class="mt-6">
+            <h3 class="text-xl font-bold text-white light:text-slate-900 group-hover:text-accent-400 transition">📅 Calendario Semanal</h3>
+            <p class="text-slate-400 light:text-slate-600 text-sm mt-1">Organiza Comidas y Cenas de la semana o genera menú con IA.</p>
+          </div>
+          <div class="mt-4 flex items-center text-xs font-semibold text-accent-400 group-hover:translate-x-1 transition-transform">
+            Ver menú de hoy <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETA DESTACADA: ACCESO DESDE NEVERA (NFC / QR) -->
+      <div onclick="appUi.openNfcQrModal()" class="glass-card p-5 rounded-2xl border border-brand-500/40 cursor-pointer hover:border-brand-500/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-brand-500/10">
+        <div class="flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-500 flex items-center justify-center text-white shadow-md flex-shrink-0">
+            <i data-lucide="smartphone" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="font-bold text-base text-white light:text-slate-900">📲 Acceso desde la Nevera (NFC / QR)</h4>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">Acceso Rápido</span>
+            </div>
+            <p class="text-xs text-slate-400 light:text-slate-600 mt-0.5">Toca la pegatina NFC de tu nevera o escanea el QR con tu móvil para abrir la app al instante.</p>
+          </div>
+        </div>
+        <span class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 whitespace-nowrap self-end sm:self-auto shadow-md">
+          Configurar Nevera <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </span>
+      </div>
+
+      <!-- HOY EN EL MENÚ (RESUMEN RÁPIDO) -->
+      <div onclick="appNav.navigate('calendar')" class="glass-card p-5 rounded-2xl border border-slate-800 light:border-slate-200 cursor-pointer group hover:border-accent-500/50 transition shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400 light:text-slate-500 flex items-center gap-2 group-hover:text-accent-400 transition">
+            <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i> Plan para Hoy (<span id="landing-today-name">Lunes</span>)
+          </h4>
+          <span class="text-xs font-bold text-accent-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+            Ver menú completo <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 light:border-slate-200 flex items-center justify-between">
+            <div>
+              <span class="text-xs font-semibold text-amber-400 uppercase">Comida</span>
+              <p id="landing-today-lunch" class="font-bold text-white light:text-slate-900 text-sm">Pollo a la Plancha</p>
+            </div>
+            <i data-lucide="sun" class="w-5 h-5 text-amber-400"></i>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 light:border-slate-200 flex items-center justify-between">
+            <div>
+              <span class="text-xs font-semibold text-indigo-400 uppercase">Cena</span>
+              <p id="landing-today-dinner" class="font-bold text-white light:text-slate-900 text-sm">Salmón al Horno</p>
+            </div>
+            <i data-lucide="moon" class="w-5 h-5 text-indigo-400"></i>
+          </div>
+      <!-- 💡 AVISOS DEL ASISTENTE DE DESPENSA & CONSUMO -->
+      <div id="landing-pantry-alerts-card" class="glass-card p-5 rounded-2xl border border-amber-500/30 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+            <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i> Alertas del Asistente de Despensa & Reaprovisionamiento
+          </h4>
+          <span class="text-[11px] text-slate-400 font-semibold" id="landing-pantry-alerts-count">Sugerencias inteligentes</span>
+        </div>
+
+        <div id="landing-pantry-alerts-container" class="space-y-2">
+          <!-- Renderizado dinámico por JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. MÓDULO 1: LISTA DE LA COMPRA INTELIGENTE -->
+    <section id="view-shopping" class="view-section hidden space-y-5">
+      <!-- Encabezado de sección -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-bold text-white light:text-slate-900 flex items-center gap-2">
+            🛒 Lista de la Compra
+          </h2>
+          <p class="text-xs text-slate-400 light:text-slate-600">Sincronización en tiempo real con despensa y menú semanal.</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="appUi.openAddProductModal()" class="px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-bold text-white flex items-center gap-1.5 transition shadow-lg shadow-brand-500/20">
+            <i data-lucide="plus" class="w-4 h-4"></i> Crear Alimento
+          </button>
+          <button onclick="appUi.openCatalogModal()" class="px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-200 hover:bg-slate-700 light:hover:bg-slate-300 text-xs font-semibold text-white light:text-slate-800 flex items-center gap-1.5 transition">
+            <i data-lucide="package" class="w-4 h-4 text-brand-400"></i> Catálogo
+          </button>
+          <button onclick="appUi.clearBought()" class="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/20 flex items-center gap-1.5 transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i> Limpiar comprados
+          </button>
+        </div>
+      </div>
+
+      <!-- FORMULARIO DE AÑADIR AL VUELO -->
+      <form id="form-add-shopping" class="glass-card p-3.5 rounded-2xl flex flex-col sm:flex-row items-center gap-2 border">
+        <input type="text" id="input-shopping-name" placeholder="Añadir producto al vuelo (ej: Leche)..." required
+          class="w-full flex-1 px-4 py-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-sm text-white light:text-slate-900 focus:outline-none focus:border-brand-500 placeholder-slate-500" />
+        
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <select id="select-shopping-category" class="px-3 py-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-white light:text-slate-900 focus:outline-none focus:border-brand-500">
+            <option value="Frescos">🥬 Frescos</option>
+            <option value="Despensa">🥫 Despensa</option>
+            <option value="Congelados">❄️ Congelados</option>
+            <option value="Especias">🌿 Especias</option>
+            <option value="Salsas">🥫 Salsas</option>
+          </select>
+          <input type="text" id="input-shopping-qty" value="1" placeholder="Ej: 1, 0.5, 1kg" class="w-24 px-2 py-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-center text-white light:text-slate-900 font-bold" />
+          <button type="submit" class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition shadow-lg shadow-brand-500/20 whitespace-nowrap">
+            <i data-lucide="plus" class="w-4 h-4"></i> Añadir
+          </button>
+        </div>
+      </form>
+
+      <!-- PESTAÑAS DE CATEGORÍA -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <button onclick="appUi.filterCategory('all')" class="cat-pill active px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-brand-600 text-white">
+          Todas (<span id="cat-count-all">0</span>)
+        </button>
+        <button onclick="appUi.filterCategory('Frescos')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🥬 Frescos (<span id="cat-count-Frescos">0</span>)
+        </button>
+        <button onclick="appUi.filterCategory('Despensa')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🥫 Despensa (<span id="cat-count-Despensa">0</span>)
+        </button>
+        <button onclick="appUi.filterCategory('Congelados')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          ❄️ Congelados (<span id="cat-count-Congelados">0</span>)
+        </button>
+        <button onclick="appUi.filterCategory('Especias')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🌿 Especias (<span id="cat-count-Especias">0</span>)
+        </button>
+        <button onclick="appUi.filterCategory('Salsas')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🥫 Salsas (<span id="cat-count-Salsas">0</span>)
+        </button>
+      </div>
+
+      <!-- CONTENEDOR DE ELEMENTOS DE COMPRA -->
+      <div id="shopping-list-container" class="space-y-2.5">
+        <!-- Renderizado dinámico desde JS -->
+      </div>
+    </section>
+
+    <!-- 3. MÓDULO 2: CALENDARIO SEMANAL Y GENERADOR DE MENÚS -->
+    <section id="view-calendar" class="view-section hidden space-y-5">
+      <!-- Encabezado & Botón IA -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-bold text-white light:text-slate-900 flex items-center gap-2">
+            📅 Plan Semanal de Comidas
+          </h2>
+          <p class="text-xs text-slate-400 light:text-slate-600">Planifica la dieta de la semana o utiliza el motor IA para menús equilibrados.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-generate-ai-menu" onclick="appUi.generateAIMenu()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent-600 to-purple-600 hover:from-accent-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition transform active:scale-95">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+            <span>Generar Menú Equilibrado (n8n IA)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Banner de sincronización de ingredientes -->
+      <div class="p-4 rounded-2xl bg-slate-900/60 light:bg-emerald-50/80 border border-brand-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-xl bg-brand-500/20 text-brand-400">
+            <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white light:text-slate-900">Revisión & Chequeo de Despensa</h4>
+            <p class="text-xs text-slate-400 light:text-slate-600">Revisa qué ingredientes tienes en casa y añade a la compra solo los que te hagan falta.</p>
+          </div>
+        </div>
+        <button onclick="appUi.openCheckIngredientsModal()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap shadow-lg shadow-brand-500/20">
+          <i data-lucide="check-square" class="w-4 h-4"></i> Chequear e Importar a la Compra
+        </button>
+      </div>
+
+      <!-- LISTA DE DÍAS (LUNES A DOMINGO) -->
+      <div id="weekly-calendar-container" class="space-y-4">
+        <!-- Renderizado dinámico por JS -->
+      </div>
+    </section>
+
+    <!-- 4. CATÁLOGO DE PRODUCTOS Y RECETAS -->
+    <section id="view-recipes" class="view-section hidden space-y-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-white light:text-slate-900">📖 Recetario & Catálogo</h2>
+          <p class="text-xs text-slate-400 light:text-slate-600">Gestión de productos habituales e ingredientes por receta.</p>
+        </div>
+        <button onclick="appUi.openAddRecipeModal()" class="px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-1.5">
+          <i data-lucide="plus" class="w-4 h-4"></i> Nueva Receta
+        </button>
+      </div>
+
+      <!-- TARJETA ANÁLISIS DE CONSUMO DEL HOGAR -->
+      <div id="consumption-analytics-card" class="glass-card p-5 rounded-2xl border border-purple-500/30 space-y-4">
+        <h3 class="font-bold text-sm uppercase text-slate-300 light:text-slate-700 flex items-center gap-2">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 text-purple-400"></i> Análisis de Consumo del Hogar (Más y Menos Usados)
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Más consumidos -->
+          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 space-y-2">
+            <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-1">
+              🔥 Top Alimentos Más Consumidos
+            </h4>
+            <div id="most-consumed-list" class="space-y-1.5 text-xs">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+          <!-- Menos consumidos / Olvidados -->
+          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 space-y-2">
+            <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1">
+              💤 Alimentos Menos Usados / Olvidados
+            </h4>
+            <div id="least-consumed-list" class="space-y-1.5 text-xs">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑAS DE CATEGORÍA DE RECETAS -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <button onclick="appUi.filterRecipeCategory('all')" class="recipe-cat-pill active px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-brand-600 text-white">
+          Todas las Recetas
+        </button>
+        <button onclick="appUi.filterRecipeCategory('Salsas')" class="recipe-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30">
+          🥫 Salsas Caseras / Propias
+        </button>
+        <button onclick="appUi.filterRecipeCategory('Saludable')" class="recipe-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🥗 Saludables
+        </button>
+        <button onclick="appUi.filterRecipeCategory('Pescado')" class="recipe-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🐟 Pescados
+        </button>
+        <button onclick="appUi.filterRecipeCategory('Carne')" class="recipe-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🥩 Carnes
+        </button>
+      </div>
+
+      <!-- LISTADO DE RECETAS -->
+      <div id="recipes-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Renderizado dinámico por JS -->
+      </div>
+    </section>
+
+    <!-- 5. CONFIGURACIÓN Y BACKEND BBDD -->
+    <section id="view-settings" class="view-section hidden space-y-5">
+      <div>
+        <h2 class="text-2xl font-bold text-white light:text-slate-900">⚙️ Configuración & Backend</h2>
+        <p class="text-xs text-slate-400 light:text-slate-600">Conexión a base de datos externa (Supabase / Google Sheets) y Webhooks de IA.</p>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl space-y-4 border border-brand-500/30">
+        <h3 class="font-bold text-sm uppercase text-slate-400 light:text-slate-500 flex items-center gap-2">
+          <i data-lucide="sliders" class="w-4 h-4 text-brand-400"></i> Reglas Personalizadas del Workflow Inteligente
+        </h3>
+        <p class="text-xs text-slate-400 light:text-slate-600">
+          Establece las reglas nutricionales o hábitos de tu hogar. El generador de menús aplicará estas normas automáticamente.
+        </p>
+        <div>
+          <label class="block text-xs text-slate-300 font-semibold mb-1">Instrucciones / Reglas de la Familia:</label>
+          <textarea id="setting-custom-rules" rows="3" placeholder="Ej: Los viernes por la noche cena rápida. No poner legumbres los domingos. Pescado al menos 2 veces por semana..."
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-white light:text-slate-900 focus:outline-none focus:border-brand-500 placeholder-slate-500"></textarea>
+        </div>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl space-y-4 border">
+        <h3 class="font-bold text-sm uppercase text-slate-400 light:text-slate-500 flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i> Webhook n8n + IA Google Gemini (Motor Inteligente)
+        </h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs text-slate-400 light:text-slate-600 mb-1">URL Endpoint del Webhook n8n:</label>
+            <input type="url" id="setting-n8n-url" placeholder="https://n8n.tu-servidor.com/webhook/generar-menu"
+              class="w-full px-3.5 py-2 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-white light:text-slate-900 focus:outline-none focus:border-brand-500" />
+            <p class="text-[11px] text-slate-500 mt-1">Si dejas este campo vacío, la app usará el simulador inteligente offline.</p>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 light:text-slate-600 mb-1">API Key de Google Gemini (Opcional si usas n8n):</label>
+            <input type="password" id="setting-gemini-key" placeholder="AIzaSy..."
+              class="w-full px-3.5 py-2 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-white light:text-slate-900 focus:outline-none focus:border-brand-500" />
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl space-y-4 border">
+        <h3 class="font-bold text-sm uppercase text-slate-400 light:text-slate-500 flex items-center gap-2">
+          <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i> Conexión Supabase (Opcional)
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-400 light:text-slate-600 mb-1">Supabase URL:</label>
+            <input type="text" id="setting-supabase-url" placeholder="https://xyz.supabase.co"
+              class="w-full px-3.5 py-2 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-white light:text-slate-900 focus:outline-none focus:border-brand-500" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 light:text-slate-600 mb-1">Supabase Anon Key:</label>
+            <input type="password" id="setting-supabase-key" placeholder="eyJhbGciOi..."
+              class="w-full px-3.5 py-2 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-white light:text-slate-900 focus:outline-none focus:border-brand-500" />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="appUi.saveSettingsForm()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-brand-500/20">
+          <i data-lucide="save" class="w-4 h-4"></i> Guardar Configuración
+        </button>
+        <button onclick="appUi.resetToDefaults()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs font-semibold transition">
+          Restablecer Datos de Ejemplo
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- NAVEGACIÓN INFERIOR MÓVIL (STICKY BAR) -->
+  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 light:bg-white/95 backdrop-blur-md border-t border-slate-800 light:border-slate-200 px-2 pt-2" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
+    <div class="max-w-md mx-auto flex items-center justify-around">
+      <button onclick="appNav.navigate('landing')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-400 transition py-1 px-3 rounded-xl" data-view="landing">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Inicio</span>
+      </button>
+      <button onclick="appNav.navigate('shopping')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-400 transition py-1 px-3 rounded-xl relative" data-view="shopping">
+        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Compra</span>
+        <span id="badge-nav-shopping-count" class="absolute top-1 right-2 w-2 h-2 rounded-full bg-brand-500 hidden"></span>
+      </button>
+      <button onclick="appNav.navigate('calendar')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-400 transition py-1 px-3 rounded-xl" data-view="calendar">
+        <i data-lucide="calendar" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Menú</span>
+      </button>
+      <button onclick="appNav.navigate('recipes')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-400 transition py-1 px-3 rounded-xl" data-view="recipes">
+        <i data-lucide="book-open" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Recetas</span>
+      </button>
+      <button onclick="appNav.navigate('settings')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-400 transition py-1 px-3 rounded-xl" data-view="settings">
+        <i data-lucide="sliders" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Ajustes</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MODAL: SELECTOR RÁPIDO DE CATÁLOGO DE PRODUCTOS -->
+  <div id="modal-catalog" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-lg rounded-2xl border p-5 space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white light:text-slate-900 flex items-center gap-2">
+          <i data-lucide="package" class="w-5 h-5 text-brand-400"></i> Catálogo Habitual de Alimentos
+        </h3>
+        <button onclick="appUi.closeCatalogModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+        <div class="flex items-center gap-1.5 text-xs">
+          <span class="text-slate-400 font-semibold text-[11px]">Ordenar:</span>
+          <button id="btn-catalog-sort-alpha" onclick="appUi.setCatalogSort('alpha')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-brand-600 text-white">
+            🔤 A - Z
+          </button>
+          <button id="btn-catalog-sort-usage" onclick="appUi.setCatalogSort('usage')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+            🔥 Más usados
+          </button>
+        </div>
+        <button onclick="appUi.openAddProductModal()" class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-1">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Nuevo Alimento
+        </button>
+      </div>
+      
+      <div id="catalog-items-list" class="overflow-y-auto space-y-2 flex-1 pr-1">
+        <!-- Renderizado dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR ALIMENTO (CATÁLOGO) -->
+  <div id="modal-add-product" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-2xl border p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white light:text-slate-900 flex items-center gap-2" id="product-modal-header-title">
+          <i data-lucide="apple" class="w-5 h-5 text-brand-400"></i> Crear Nuevo Alimento
+        </h3>
+        <button onclick="appUi.closeAddProductModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-create-product" class="space-y-3.5">
+        <input type="hidden" id="edit-product-id" value="" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 light:text-slate-600 mb-1">Nombre del Alimento:</label>
+          <input type="text" id="new-prod-name" placeholder="Ej: Aguacate Hass, Avena, Yogur..." required
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-sm text-white light:text-slate-900 focus:outline-none focus:border-brand-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 light:text-slate-600 mb-1">Categoría:</label>
+            <select id="new-prod-category" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900">
+              <option value="Frescos">🥬 Frescos</option>
+              <option value="Despensa">🥫 Despensa</option>
+              <option value="Congelados">❄️ Congelados</option>
+              <option value="Especias">🌿 Especias</option>
+              <option value="Salsas">🥫 Salsas</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 light:text-slate-600 mb-1">Unidad Predeterminada:</label>
+            <select id="new-prod-unit" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900">
+              <option value="uds">uds (unidades)</option>
+              <option value="kg">kg (kilos)</option>
+              <option value="g">g (gramos)</option>
+              <option value="l">l (litros)</option>
+              <option value="ml">ml (mililitros)</option>
+              <option value="docena">docena</option>
+              <option value="bolsa">bolsa</option>
+              <option value="paquete">paquete</option>
+              <option value="bote">bote</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="new-prod-essential" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-900 border-slate-700" />
+          <label for="new-prod-essential" class="text-xs text-slate-300 light:text-slate-700 cursor-pointer">Marcar como alimento esencial en la despensa</label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="appUi.closeAddProductModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20">
+            Guardar Alimento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR RECETA Y COMIDA -->
+  <div id="modal-add-recipe" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="glass-card w-full max-w-lg rounded-2xl border p-5 space-y-4 max-h-[90vh] flex flex-col my-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white light:text-slate-900 flex items-center gap-2" id="recipe-modal-header-title">
+          <i data-lucide="chef-hat" class="w-5 h-5 text-accent-400"></i> Nueva Comida / Receta
+        </h3>
+        <button onclick="appUi.closeAddRecipeModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-create-recipe" class="space-y-3.5 overflow-y-auto flex-1 pr-1">
+        <input type="hidden" id="edit-recipe-id" value="" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 light:text-slate-600 mb-1">Nombre del Plato / Comida:</label>
+          <input type="text" id="new-recipe-title" placeholder="Ej: Lasaña de Berenjenas, Crema de Calabacín..." required
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-sm text-white light:text-slate-900 focus:outline-none focus:border-accent-500" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 light:text-slate-600 mb-1">Categoría:</label>
+            <select id="new-recipe-category" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900">
+              <option value="Saludable">🥗 Saludable</option>
+              <option value="Pescado">🐟 Pescado</option>
+              <option value="Carne">🥩 Carne</option>
+              <option value="Pasta">🍝 Pasta</option>
+              <option value="Vegetariano">🌱 Vegetariano</option>
+              <option value="Rápida">⚡ Rápida</option>
+              <option value="Tradicional">🍲 Tradicional</option>
+              <option value="Salsas">🥫 Salsa Casera / Propia</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 light:text-slate-600 mb-1">Recomendada para:</label>
+            <select id="new-recipe-mealtarget" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900">
+              <option value="both">☀️🌙 Comida o Cena</option>
+              <option value="lunch">☀️ Comida (Mediodía)</option>
+              <option value="dinner">🌙 Cena (Ligera)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 light:text-slate-600 mb-1">Prep. (min):</label>
+            <input type="number" id="new-recipe-preptime" value="25" min="5" max="240" required
+              class="w-full px-3 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900" />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="new-recipe-favorite" class="w-4 h-4 rounded text-rose-500 focus:ring-rose-500 bg-slate-900 border-slate-700" />
+          <label for="new-recipe-favorite" class="text-xs text-slate-300 light:text-slate-700 cursor-pointer">Marcar como Receta Favorita ❤️</label>
+        </div>
+
+        <!-- CREADOR DE INGREDIENTES PARA LA RECETA -->
+        <div class="border-t border-slate-800 pt-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-300">Ingredientes vinculados:</span>
+            <button type="button" onclick="appUi.addIngredientRowToForm()" class="px-2 py-1 rounded bg-slate-800 text-[11px] font-semibold text-brand-400 hover:bg-slate-700 flex items-center gap-1">
+              <i data-lucide="plus" class="w-3 h-3"></i> Añadir Ingrediente
+            </button>
+          </div>
+
+          <div id="recipe-ingredients-rows" class="space-y-2">
+            <!-- Filas dinámicas de ingredientes -->
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="appUi.closeAddRecipeModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-accent-600 hover:bg-accent-500 text-white font-bold text-xs shadow-lg shadow-indigo-500/20">
+            Guardar Comida
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: RECETA EDITAR / ASIGNAR EN MENÚ -->
+  <div id="modal-assign-recipe" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-2xl border p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white light:text-slate-900" id="assign-recipe-title">Cambiar Plato</h3>
+        <button onclick="appUi.closeAssignRecipeModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <label class="block text-xs text-slate-400 light:text-slate-600">Selecciona receta del recetario:</label>
+        <select id="select-assign-recipe-id" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-sm text-white light:text-slate-900">
+          <!-- Opciones dinámicas -->
+        </select>
+        <div class="text-center py-1">
+          <span class="text-xs text-slate-500 font-semibold">— O bien escribe un plato personalizado —</span>
+        </div>
+        <input type="text" id="input-assign-custom-title" placeholder="Ej: Pizza casera de verduras..." class="w-full px-3.5 py-2 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="appUi.confirmAssignRecipe()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs">
+          Guardar Plato
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REVISAR / CHEQUEAR INGREDIENTES DE LA SEMANA -->
+  <div id="modal-check-ingredients" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="glass-card w-full max-w-lg rounded-2xl border p-5 space-y-4 max-h-[90vh] flex flex-col my-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white light:text-slate-900 flex items-center gap-2">
+          <i data-lucide="clipboard-check" class="w-5 h-5 text-brand-400"></i> Chequeo de Ingredientes de la Semana
+        </h3>
+        <button onclick="appUi.closeCheckIngredientsModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400 light:text-slate-600">
+        Revisa los ingredientes de tus comidas de esta semana. <strong>Marca los que TE FALTAN (hace falta comprar)</strong> para añadirlos a la lista de la compra.
+      </p>
+
+      <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+        <span class="text-xs font-bold text-slate-300" id="check-ingredients-count-text">0 ingredientes de las recetas</span>
+        <div class="flex items-center gap-2 text-[11px]">
+          <button onclick="appUi.toggleAllCheckIngredients(true)" class="text-brand-400 hover:underline font-semibold">Marcar todos (Faltan)</button>
+          <span class="text-slate-600">•</span>
+          <button onclick="appUi.toggleAllCheckIngredients(false)" class="text-slate-400 hover:underline font-semibold">Desmarcar todos</button>
+        </div>
+      </div>
+
+      <!-- LISTA DE INGREDIENTES CON CHECKBOXES -->
+      <div id="check-ingredients-list" class="overflow-y-auto space-y-2 flex-1 pr-1">
+        <!-- Renderizado dinámico por JS -->
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+        <button type="button" onclick="appUi.closeCheckIngredientsModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">Cancelar</button>
+        <button type="button" onclick="appUi.confirmImportSelectedIngredients()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 flex items-center gap-1.5">
+          <i data-lucide="shopping-cart" class="w-4 h-4"></i> Añadir Seleccionados a la Compra
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONECTAR PEGATINA NFC / QR DE NEVERA -->
+  <div id="modal-nfc-qr" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-2xl border p-5 space-y-4 max-h-[90vh] overflow-y-auto my-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white light:text-slate-900 flex items-center gap-2">
+          <i data-lucide="smartphone" class="w-5 h-5 text-brand-400"></i> Pegatina NFC & QR para la Nevera
+        </h3>
+        <button onclick="appUi.closeNfcQrModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Opciones NFC y QR -->
+      <div class="space-y-4">
+        <!-- OPCIÓN 1: PEGATINA NFC -->
+        <div class="p-4 rounded-xl bg-slate-900/80 light:bg-slate-100 border border-brand-500/30 space-y-2.5">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-lg bg-brand-500/20 text-brand-400 font-bold text-xs">📱 Opción 1 (Favorita)</span>
+            <h4 class="font-bold text-sm text-white light:text-slate-900">Pegatina NFC (Pegar el móvil a la nevera)</h4>
+          </div>
+          <p class="text-xs text-slate-300 light:text-slate-700">
+            Al acercar la parte trasera de tu smartphone a la pegatina NFC pegada en la nevera, el teléfono abre Diata en pantalla inmediatamente.
+          </p>
+          <div class="space-y-1.5 pt-1">
+            <label class="text-[11px] text-slate-400 font-semibold">Enlace de la App para grabar en tu pegatina NFC:</label>
+            <div class="flex items-center gap-2">
+              <input type="text" id="nfc-url-input" readonly value="" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 light:bg-white border border-slate-700 text-xs text-brand-300 font-mono" />
+              <button onclick="appUi.copyNfcUrl()" class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+              </button>
+            </div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-slate-950/60 light:bg-white border border-slate-800 text-[11px] text-slate-400 space-y-1">
+            <p class="font-bold text-slate-300">💡 Pasos para grabar tu pegatina NFC (30 segundos):</p>
+            <ol class="list-decimal list-inside space-y-0.5">
+              <li>Descarga la app gratuita <strong>NFC Tools</strong> (disponible en App Store y Google Play).</li>
+              <li>Abre NFC Tools y selecciona <strong>Escribir ➔ Añadir registro ➔ URL / Enlace web</strong>.</li>
+              <li>Pega el enlace copiado arriba y pulsa en <strong>Escribir</strong>.</li>
+              <li>Acerca la pegatina a la parte trasera de tu teléfono... ¡y listo!</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- OPCIÓN 2: CÓDIGO QR -->
+        <div class="p-4 rounded-xl bg-slate-900/80 light:bg-slate-100 border border-slate-800 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-lg bg-accent-500/20 text-accent-400 font-bold text-xs">📷 Opción 2</span>
+            <h4 class="font-bold text-sm text-white light:text-slate-900">Código QR para la Nevera</h4>
+          </div>
+          <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-inner">
+            <img id="qr-code-img" src="" alt="Código QR Nevera" class="w-44 h-44 object-contain" />
+          </div>
+          <button onclick="window.print()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="printer" class="w-4 h-4"></i> Imprimir o Guardar Código QR
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALLE Y CHEQUEO DE INGREDIENTES PARA COCINAR -->
+  <div id="modal-recipe-detail" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="glass-card w-full max-w-lg rounded-2xl border p-5 space-y-4 max-h-[90vh] flex flex-col my-auto">
+      <!-- Encabezado de la Receta -->
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span id="detail-recipe-category" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">Saludable</span>
+            <span id="detail-recipe-target" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">☀️ Comida</span>
+            <span id="detail-recipe-favorite" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 hidden">⭐ Favorita</span>
+          </div>
+          <h3 id="detail-recipe-title" class="text-xl font-extrabold text-white light:text-slate-900 mt-1">Nombre de la Receta</h3>
+          <p id="detail-recipe-preptime" class="text-xs text-slate-400 light:text-slate-600 flex items-center gap-1 mt-0.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-400"></i> 20 minutos de preparación
+          </p>
+        </div>
+        <button onclick="appUi.closeRecipeDetailModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Sección de Ingredientes para Cocinar -->
+      <div class="space-y-2 flex-1 overflow-y-auto pr-1">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 light:text-slate-700 flex items-center gap-1.5">
+            <i data-lucide="utensils" class="w-4 h-4 text-brand-400"></i> Ingredientes necesarios para cocinar:
+          </h4>
+          <span class="text-[11px] text-slate-400 font-semibold" id="detail-ingredients-count">0 ingredientes</span>
+        </div>
+
+        <div id="detail-ingredients-list" class="space-y-2 pt-1">
+          <!-- Renderizado dinámico -->
+        </div>
+      </div>
+
+      <!-- Acciones Inferiores -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800 gap-2">
+        <button id="btn-edit-detail-recipe" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1.5 transition">
+          <i data-lucide="pencil" class="w-4 h-4"></i> Editar Receta
+        </button>
+        <button onclick="appUi.closeRecipeDetailModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20">
+          Entendido / Cocinar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS PRINCIPALES -->
+  <script src="db.js?v=99"></script>
+  <script src="app.js?v=99"></script>
+  <script>
+    // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(key => {
+          if (!key.includes('v99')) caches.delete(key);
+        });
+      });
+    }
+    // Registrar Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            reg.update();
+            console.log('PWA ServiceWorker actualizado:', reg.scope);
+          })
+          .catch(err => console.warn('Error registrando ServiceWorker:', err));
+      });
+    }
+  </script>
+</body>
+</html>

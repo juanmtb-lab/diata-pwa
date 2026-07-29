@@ -1,0 +1,76 @@
+{
+  "name": "Diata - Generador de Menú Semanal Inteligente sin Repeticiones",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generar-menu",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "id": "node-webhook-diata",
+      "name": "Webhook Diata App"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer datos recibidos desde la Web App Diata\nconst body = $input.item.json.body || $input.item.json;\nconst recipes = body.recipes || [];\nconst lockedMeals = body.locked_meals || [];\nconst familyRules = body.family_rules || '';\nconst customPrompt = body.prompt || '';\n\nconst days = [\n  { day_index: 1, day_name: \"Lunes\" },\n  { day_index: 2, day_name: \"Martes\" },\n  { day_index: 3, day_name: \"Miércoles\" },\n  { day_index: 4, day_name: \"Jueves\" },\n  { day_index: 5, day_name: \"Viernes\" },\n  { day_index: 6, day_name: \"Sábado\" },\n  { day_index: 7, day_name: \"Domingo\" }\n];\n\n// Colección de IDs asignados para evitar repeticiones\nconst usedRecipeIds = new Set();\n\n// 1. Registrar recetas bloqueadas\nlockedMeals.forEach(lm => {\n  if (lm.lunch_locked) {\n    const r = recipes.find(rec => rec.title.toLowerCase() === lm.lunch_locked.toLowerCase());\n    if (r) usedRecipeIds.add(r.id);\n  }\n  if (lm.dinner_locked) {\n    const r = recipes.find(rec => rec.title.toLowerCase() === lm.dinner_locked.toLowerCase());\n    if (r) usedRecipeIds.add(r.id);\n  }\n});\n\n// Separar piscinas de comida y cena\nconst lunchPool = recipes.filter(r => !r.meal_target || r.meal_target === 'lunch' || r.meal_target === 'both');\nconst dinnerPool = recipes.filter(r => !r.meal_target || r.meal_target === 'dinner' || r.meal_target === 'both');\n\nfunction pickUnique(pool) {\n  let candidates = pool.filter(r => !usedRecipeIds.has(r.id));\n  if (candidates.length === 0) candidates = recipes.filter(r => !usedRecipeIds.has(r.id));\n  if (candidates.length === 0) candidates = pool.length > 0 ? pool : recipes;\n  \n  if (candidates.length === 0) return { id: null, title: 'Sin planificar' };\n  \n  const picked = candidates[Math.floor(Math.random() * candidates.length)];
+  if (picked && picked.id) usedRecipeIds.add(picked.id);\n  return picked;\n}\n\n// Construir menú semanal único sin duplicados\nconst generatedMenu = days.map(d => {\n  const locked = lockedMeals.find(lm => lm.day_index === d.day_index) || {};\n  \n  let lunchObj;\n  if (locked.lunch_locked) {\n    const r = recipes.find(rec => rec.title.toLowerCase() === locked.lunch_locked.toLowerCase());\n    lunchObj = { recipe_id: r ? r.id : null, title: locked.lunch_locked, completed: false, locked: true };\n  } else {\n    const r = pickUnique(lunchPool);\n    lunchObj = { recipe_id: r.id, title: r.title, completed: false, locked: false };\n  }\n\n  let dinnerObj;\n  if (locked.dinner_locked) {\n    const r = recipes.find(rec => rec.title.toLowerCase() === locked.dinner_locked.toLowerCase());\n    dinnerObj = { recipe_id: r ? r.id : null, title: locked.dinner_locked, completed: false, locked: true };\n  } else {\n    const r = pickUnique(dinnerPool);\n    dinnerObj = { recipe_id: r.id, title: r.title, completed: false, locked: false };\n  }\n\n  return {\n    day_index: d.day_index,\n    day_name: d.day_name,\n    lunch: lunchObj,\n    dinner: dinnerObj\n  };\n});\n\nreturn {\n  json: {\n    status: \"success\",\n    engine: \"n8n_diata_smart_rules_v1\",\n    family_rules_applied: familyRules,\n    custom_prompt: customPrompt,\n    generated_menu: generatedMenu\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "node-code-engine",
+      "name": "Motor de Reglas Diata (Zero-Repeat)"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        300
+      ],
+      "id": "node-respond-webhook",
+      "name": "Responder a Diata Web App"
+    }
+  ],
+  "connections": {
+    "Webhook Diata App": {
+      "main": [
+        [
+          {
+            "node": "Motor de Reglas Diata (Zero-Repeat)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Motor de Reglas Diata (Zero-Repeat)": {
+      "main": [
+        [
+          {
+            "node": "Responder a Diata Web App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

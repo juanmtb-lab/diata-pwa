@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "N8n Menu Generator Webhook Payload Specification",
+  "description": "Especificación de comunicación HTTP entre la PWA y el Webhook de automatización n8n (LLM Gemini / OpenAI)",
+  "request_format": {
+    "endpoint": "POST https://tu-instancia-n8n.com/webhook/generar-menu",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer TOKEN_OPCIONAL"
+    },
+    "body": {
+      "user_preferences": {
+        "diet_type": "equilibrada",
+        "servings": 2,
+        "max_prep_time_minutes": 35,
+        "avoid_ingredients": ["marisco"]
+      },
+      "locked_meals": [
+        {
+          "day_index": 1,
+          "meal_type": "lunch",
+          "recipe_title": "Pollo a la Plancha con Ensalada"
+        }
+      ],
+      "available_catalog_recipes": [
+        {
+          "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          "title": "Pollo a la Plancha con Ensalada",
+          "category": "Saludable",
+          "ingredients": ["Pechuga de pollo", "Tomates ensalada", "Espinacas frescas"]
+        },
+        {
+          "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+          "title": "Salmón al Horno con Guisantes",
+          "category": "Pescado",
+          "ingredients": ["Salmón congelado", "Guisantes congelados", "Ajo"]
+        }
+      ],
+      "available_pantry_products": [
+        "Huevos camperos",
+        "Arroz integral",
+        "Aceite de Oliva VV",
+        "Leche entera"
+      ]
+    }
+  },
+  "expected_response_format": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "generated_menu": [
+        {
+          "day_index": 1,
+          "day_name": "Lunes",
+          "lunch": {
+            "title": "Pollo a la Plancha con Ensalada",
+            "ingredients": [
+              { "name": "Pechuga de pollo", "category": "Frescos", "quantity": 0.5, "unit": "kg" },
+              { "name": "Tomates ensalada", "category": "Frescos", "quantity": 2, "unit": "uds" }
+            ]
+          },
+          "dinner": {
+            "title": "Salmón al Horno con Guisantes",
+            "ingredients": [
+              { "name": "Salmón congelado", "category": "Congelados", "quantity": 2, "unit": "paquete" },
+              { "name": "Guisantes congelados", "category": "Congelados", "quantity": 0.3, "unit": "kg" }
+            ]
+          }
+        }
+      ],
+      "ai_summary": "Menú semanal equilibrado con alto contenido proteico y verduras de temporada."
+    }
+  }
+}

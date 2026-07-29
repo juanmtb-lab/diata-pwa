@@ -1,0 +1,146 @@
+{
+  "name": "Diata - Generador de Menú Semanal con IA Google Gemini",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generar-menu",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        300
+      ],
+      "id": "node-webhook-diata",
+      "name": "Webhook Diata App"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer datos de la solicitud enviada por Diata\nconst body = $input.item.json.body || $input.item.json;\nconst recipes = body.recipes || [];\nconst lockedMeals = body.locked_meals || [];\nconst familyRules = body.family_rules || '';\nconst customPrompt = body.prompt || '';\n\n// Prompt optimizado de alta precisión para Google Gemini\nconst systemPrompt = `Eres el Nutricionista y Chef IA Experto para la aplicación Diata.\nTu misión es planificar el menú semanal completo (de Lunes a Domingo, 7 almuerzos/comidas y 7 cenas = 14 momentos en total).\n\nREGLAS DE OBLIGADO CUMPLIMIENTO:\n1. DEBES seleccionar ÚNICAMENTE recetas existentes en el catálogo adjunto. NO inventes ningún plato.\n2. CERO REPETICIÓN SEMANAL: Ninguna receta se puede repetir durante la semana. Cada una de las 14 comidas/cenas debe ser una receta distinta.\n3. VARIETAD DIARIA Y CERO SOLAPAMIENTO DE INGREDIENTES: Queda TOTALMENTE PROHIBIDO repetir ingredientes principales (ej: gambas, marisco, salmón, pollo, arroz) entre la comida (☀️) y la cena (🌙) del MISMO día. Si el almuerzo lleva Gambas, la cena DEBE ser de carne, verduras o huevo pero NUNCA con Gambas.\n4. RESPETA PLANES BLOQUEADOS: Si un día ya tiene un plato fijado por el usuario, mantén ese título exacto.\n5. COMIDA (☀️) vs CENA (🌙): Selecciona comidas nutricionalmente contundentes para los almuerzos y opciones más ligeras para las cenas.\n6. NORMAS DE LA FAMILIA: Cumple estrictamente estas costumbres: \"${familyRules || 'Menú variado, equilibrado y saludable'}\".\n${customPrompt ? 'INSTRUCCIÓN ADICIONAL DEL USUARIO: \"' + customPrompt + '\"' : ''}\n\nCATÁLOGO OFICIAL DE RECETAS PERMITIDAS:\n${JSON.stringify(recipes, null, 2)}\n\nESTADO ACTUAL DEL PLAN Y BLOQUEOS:\n${JSON.stringify(lockedMeals, null, 2)}\n\nFORMATO OBLIGATORIO DE RESPUESTA:\nDebes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructura exacta sin texto explicativo extra:\n{\n  \"generated_menu\": [\n    {\n      \"day_index\": 1,\n      \"day_name\": \"Lunes\",\n      \"lunch\": { \"recipe_id\": \"id_receta\", \"title\": \"Título Exacto\", \"completed\": false, \"locked\": false },\n      \"dinner\": { \"recipe_id\": \"id_receta\", \"title\": \"Título Exacto\", \"completed\": false, \"locked\": false }\n    }\n    ... hasta el día 7 (Domingo)\n  ]\n}`;\n\nreturn {\n  json: {\n    systemPrompt,\n    recipes,\n    lockedMeals,\n    familyRules\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "id": "node-prepare-gemini-prompt",
+      "name": "Preparar Prompt Nutricional para Gemini"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $node[\"Webhook Diata App\"].json.body.gemini_key || $env.GEMINI_API_KEY || \"TU_GEMINI_API_KEY_AQUI\" }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": {{ JSON.stringify($json.systemPrompt) }}\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"temperature\": 0.2,\n    \"responseMimeType\": \"application/json\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ],
+      "id": "node-gemini-api",
+      "name": "IA Google Gemini (1.5 Flash)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Procesar e higienizar la respuesta JSON de Gemini AI\nconst geminiRawResponse = $input.item.json;\nlet parsedOutput = null;\n\ntry {\n  const textContent = geminiRawResponse.candidates[0].content.parts[0].text;\n  parsedOutput = JSON.parse(textContent);\n} catch (e) {\n  console.error('Error parseando JSON de Gemini:', e);\n}\n\nconst recipes = $node[\"Preparar Prompt Nutricional para Gemini\"].json.recipes;\nconst recipeMapById = new Map(recipes.map(r => [r.id, r]));\nconst recipeMapByTitle = new Map(recipes.map(r => [r.title.toLowerCase().trim(), r]));\n\n// Filtro de seguridad anti-alucinaciones\nlet finalMenu = [];\nif (parsedOutput && parsedOutput.generated_menu && Array.isArray(parsedOutput.generated_menu)) {\n  finalMenu = parsedOutput.generated_menu.map(day => {\n    const sanitizeMeal = (meal) => {\n      if (!meal) return { recipe_id: null, title: 'Sin planificar', completed: false, locked: false };\n      if (meal.locked) return meal;\n      \n      if (meal.recipe_id && recipeMapById.has(meal.recipe_id)) {\n        const match = recipeMapById.get(meal.recipe_id);\n        return { recipe_id: match.id, title: match.title, completed: false, locked: false };\n      }\n      if (meal.title && recipeMapByTitle.has(meal.title.toLowerCase().trim())) {\n        const match = recipeMapByTitle.get(meal.title.toLowerCase().trim());\n        return { recipe_id: match.id, title: match.title, completed: false, locked: false };\n      }\n      \n      // Fallback seguro a una receta existente\n      const fallback = recipes[Math.floor(Math.random() * recipes.length)];\n      return { recipe_id: fallback ? fallback.id : null, title: fallback ? fallback.title : 'Sin planificar', completed: false, locked: false };\n    };\n\n    return {\n      day_index: day.day_index,\n      day_name: day.day_name,\n      lunch: sanitizeMeal(day.lunch),\n      dinner: sanitizeMeal(day.dinner)\n    };\n  });\n}\n\nreturn {\n  json: {\n    status: \"success\",\n    engine: \"google_gemini_1.5_flash\",\n    generated_menu: finalMenu\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "id": "node-parse-gemini-response",
+      "name": "Higienizador & Validador Anti-Alucinación"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        300
+      ],
+      "id": "node-respond-webhook",
+      "name": "Responder a Diata Web App"
+    }
+  ],
+  "connections": {
+    "Webhook Diata App": {
+      "main": [
+        [
+          {
+            "node": "Preparar Prompt Nutricional para Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Prompt Nutricional para Gemini": {
+      "main": [
+        [
+          {
+            "node": "IA Google Gemini (1.5 Flash)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA Google Gemini (1.5 Flash)": {
+      "main": [
+        [
+          {
+            "node": "Higienizador & Validador Anti-Alucinación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Higienizador & Validador Anti-Alucinación": {
+      "main": [
+        [
+          {
+            "node": "Responder a Diata Web App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
