@@ -79,6 +79,11 @@
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
+    /* Soporte Safe Area para Notch / Dynamic Island en iPhones y Android */
+    header {
+      padding-top: max(0.75rem, calc(0.6rem + env(safe-area-inset-top, 0px))) !important;
+    }
+
     .mobile-safe-pb {
       padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
     }
@@ -87,7 +92,7 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen mobile-safe-pb md:pb-8 transition-colors duration-200 light:bg-slate-50 light:text-slate-900">
 
   <!-- TOP HEADER -->
-  <header class="sticky top-0 z-40 bg-slate-900/90 dark:bg-slate-900/90 light:bg-white/90 backdrop-blur-md border-b border-slate-800 light:border-slate-200 px-4 py-3 shadow-sm">
+  <header class="sticky top-0 z-40 bg-slate-900/95 dark:bg-slate-900/95 light:bg-white/95 backdrop-blur-md border-b border-slate-800 light:border-slate-200 px-4 pb-3 shadow-sm">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
       <!-- Logo y Título -->
       <div class="flex items-center space-x-3 cursor-pointer" onclick="appNav.navigate('landing')">
