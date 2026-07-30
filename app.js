@@ -42,7 +42,7 @@ class AppNavigation {
 
 window.appNav = new AppNavigation();
 
-// --- HELPER DE PARSEO FLEXIBLE DE CANTIDADES (Ej: 1, 0.5, 1kg, 500g, 2.5) ---
+// --- HELPER DE PARSEO FLEXIBLE DE CANTIDADES (Ej: 1, 1/2, 0.5, 1kg, 500g, 2.5) ---
 function parseQuantityAndUnit(rawQtyStr, fallbackUnit = 'uds') {
   if (rawQtyStr === null || rawQtyStr === undefined || rawQtyStr === '') {
     return { quantity: 1, unit: fallbackUnit };
@@ -52,6 +52,17 @@ function parseQuantityAndUnit(rawQtyStr, fallbackUnit = 'uds') {
   }
 
   let str = String(rawQtyStr).trim().replace(',', '.');
+
+  // Soporte para fracciones como "1/2", "1/2kg", "1/2 latas"
+  const fractionMatch = str.match(/^(\d+)\/(\d+)\s*([a-zA-ZáéíóúÁÉÍÓÚ]*)$/);
+  if (fractionMatch) {
+    const num = parseFloat(fractionMatch[1]) / parseFloat(fractionMatch[2]);
+    const unitStr = fractionMatch[3] ? fractionMatch[3].toLowerCase() : fallbackUnit;
+    return {
+      quantity: isNaN(num) ? 0.5 : num,
+      unit: unitStr || fallbackUnit
+    };
+  }
 
   // Coincidir número y unidad opcional (ej: "1.5kg", "1 kg", "500g", "2", "0.5")
   const match = str.match(/^([\d.]+)\s*([a-zA-ZáéíóúÁÉÍÓÚ]*)$/);
@@ -182,6 +193,8 @@ class AppUI {
             const val = selectEl.value;
             if (val === '__NEW__') {
               ingName = customNameEl ? customNameEl.value.trim() : '';
+              const catEl = row.querySelector('.ing-category');
+              if (catEl) ingCategory = catEl.value;
             } else if (val) {
               const opt = selectEl.options[selectEl.selectedIndex];
               ingName = opt ? (opt.dataset.name || '').trim() : '';
@@ -1192,7 +1205,7 @@ class AppUI {
         mostList.innerHTML = most.map(p => `
           <div class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950/60 border border-slate-800">
             <span class="font-bold text-white">${p.name} (${p.category})</span>
-            <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">🔥 ${p.usage_count} usos</span>
+            <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">${p.usage_count} usos</span>
           </div>
         `).join('');
       }
@@ -1206,7 +1219,7 @@ class AppUI {
         leastList.innerHTML = least.map(p => `
           <div class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950/60 border border-slate-800">
             <span class="font-bold text-slate-300">${p.name} (${p.category})</span>
-            <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 font-medium">💤 Sin usar</span>
+            <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 font-medium">Sin usar</span>
           </div>
         `).join('');
       }
@@ -1339,6 +1352,7 @@ class AppUI {
           <option value="dientes" ${unit === 'dientes' ? 'selected' : ''}>dientes</option>
           <option value="pizca" ${unit === 'pizca' ? 'selected' : ''}>pizca</option>
           <option value="lata" ${unit === 'lata' ? 'selected' : ''}>lata</option>
+          <option value="latas" ${unit === 'latas' ? 'selected' : ''}>latas</option>
         </select>
         <button type="button" onclick="this.closest('.ingredient-row').remove()" class="p-1 text-slate-400 hover:text-rose-400">
           <i data-lucide="x" class="w-4 h-4"></i>

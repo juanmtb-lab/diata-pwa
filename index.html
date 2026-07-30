@@ -360,33 +360,6 @@
         </button>
       </div>
 
-      <!-- TARJETA ANÁLISIS DE CONSUMO DEL HOGAR -->
-      <div id="consumption-analytics-card" class="glass-card p-5 rounded-2xl border border-purple-500/30 space-y-4">
-        <h3 class="font-bold text-sm uppercase text-slate-300 light:text-slate-700 flex items-center gap-2">
-          <i data-lucide="bar-chart-3" class="w-4 h-4 text-purple-400"></i> Análisis de Consumo del Hogar (Más y Menos Usados)
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Más consumidos -->
-          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 space-y-2">
-            <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-1">
-              🔥 Top Alimentos Más Consumidos
-            </h4>
-            <div id="most-consumed-list" class="space-y-1.5 text-xs">
-              <!-- Renderizado dinámico -->
-            </div>
-          </div>
-          <!-- Menos consumidos / Olvidados -->
-          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 space-y-2">
-            <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1">
-              💤 Alimentos Menos Usados / Olvidados
-            </h4>
-            <div id="least-consumed-list" class="space-y-1.5 text-xs">
-              <!-- Renderizado dinámico -->
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- PESTAÑAS DE CATEGORÍA DE RECETAS -->
       <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
         <button onclick="appUi.filterRecipeCategory('all')" class="recipe-cat-pill active px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-brand-600 text-white">
@@ -409,6 +382,33 @@
       <!-- LISTADO DE RECETAS -->
       <div id="recipes-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Renderizado dinámico por JS -->
+      </div>
+
+      <!-- TARJETA ANÁLISIS DE CONSUMO DEL HOGAR (PARTE INFERIOR) -->
+      <div id="consumption-analytics-card" class="glass-card p-5 rounded-2xl border border-purple-500/30 space-y-4 mt-6">
+        <h3 class="font-bold text-sm uppercase text-slate-300 light:text-slate-700 flex items-center gap-2">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 text-purple-400"></i> Análisis de Consumo del Hogar (Más y Menos Usados)
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Más consumidos -->
+          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 space-y-2">
+            <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-1">
+              Top Alimentos Más Consumidos
+            </h4>
+            <div id="most-consumed-list" class="space-y-1.5 text-xs">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+          <!-- Menos consumidos / Olvidados -->
+          <div class="p-3.5 rounded-xl bg-slate-900/60 light:bg-slate-100 border border-slate-800 space-y-2">
+            <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1">
+              Alimentos Menos Usados / Olvidados
+            </h4>
+            <div id="least-consumed-list" class="space-y-1.5 text-xs">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -584,6 +584,8 @@
               <option value="bolsa">bolsa</option>
               <option value="paquete">paquete</option>
               <option value="bote">bote</option>
+              <option value="lata">lata</option>
+              <option value="latas">latas</option>
             </select>
           </div>
         </div>

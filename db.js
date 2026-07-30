@@ -353,6 +353,9 @@ class AppDatabase {
     const products = this.getProducts();
     const index = products.findIndex(p => p.id === id);
     if (index !== -1) {
+      const oldProd = products[index];
+      const oldNameLower = (oldProd.name || '').toLowerCase().trim();
+
       products[index] = {
         ...products[index],
         name: updatedData.name,
@@ -361,6 +364,27 @@ class AppDatabase {
         is_essential: !!updatedData.is_essential
       };
       localStorage.setItem('qr_menu_products', JSON.stringify(products));
+
+      // Sincronizar automáticamente con todas las recetas que contienen este ingrediente
+      const recipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
+      let recipesChanged = false;
+
+      recipes.forEach(r => {
+        if (r.ingredients) {
+          r.ingredients.forEach(ing => {
+            if ((ing.name || '').toLowerCase().trim() === oldNameLower) {
+              ing.name = updatedData.name;
+              ing.category = updatedData.category || 'Despensa';
+              recipesChanged = true;
+            }
+          });
+        }
+      });
+
+      if (recipesChanged) {
+        localStorage.setItem('qr_menu_recipes', JSON.stringify(recipes));
+      }
+
       return products[index];
     }
     return null;
@@ -403,6 +427,25 @@ class AppDatabase {
   // --- RECETAS ---
   getRecipes() {
     const recipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
+    const products = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
+    const prodMap = new Map();
+    products.forEach(p => {
+      if (p.name) prodMap.set(p.name.toLowerCase().trim(), p);
+    });
+
+    recipes.forEach(r => {
+      if (r.ingredients) {
+        r.ingredients.forEach(ing => {
+          if (ing.name) {
+            const matched = prodMap.get(ing.name.toLowerCase().trim());
+            if (matched) {
+              ing.category = matched.category || ing.category || 'Frescos';
+            }
+          }
+        });
+      }
+    });
+
     return recipes.sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
   }
 
