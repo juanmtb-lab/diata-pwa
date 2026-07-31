@@ -2,16 +2,19 @@
   "short_name": "Diata",
   "name": "Diata - Menús Semanales y Lista de la Compra",
   "description": "Planificación diaria de comidas y lista de la compra inteligente sincronizada.",
+  "id": "https://juanmtb-lab.github.io/diata-pwa/",
+  "start_url": "https://juanmtb-lab.github.io/diata-pwa/",
+  "scope": "https://juanmtb-lab.github.io/diata-pwa/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>",
       "type": "image/svg+xml",
-      "sizes": "192x192 512x512"
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "./index.html",
-  "background_color": "#0f172a",
-  "theme_color": "#1e293b",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
