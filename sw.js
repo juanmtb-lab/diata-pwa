@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diata-pwa-v103';
+const CACHE_NAME = 'diata-pwa-v104';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
