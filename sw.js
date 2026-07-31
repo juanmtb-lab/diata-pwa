@@ -1,10 +1,12 @@
-const CACHE_NAME = 'diata-pwa-v100';
+const CACHE_NAME = 'diata-pwa-v101';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './db.js',
   './app.js',
   './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/lucide@latest'
 ];
