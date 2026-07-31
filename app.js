@@ -1421,6 +1421,13 @@ class AppUI {
     if (geminiKeyInput) geminiKeyInput.value = settings.gemini_key || '';
     if (supabaseUrlInput) supabaseUrlInput.value = settings.supabase_url || '';
     if (supabaseKeyInput) supabaseKeyInput.value = settings.supabase_key || '';
+
+    // Cargar enlace NFC y código QR de Nevera en Ajustes
+    const currentUrl = 'https://juanmtb-lab.github.io/diata-pwa/';
+    const nfcInput = document.getElementById('nfc-url-input');
+    const qrImg = document.getElementById('qr-code-img');
+    if (nfcInput) nfcInput.value = currentUrl;
+    if (qrImg) qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
   }
 
   saveSettingsForm() {

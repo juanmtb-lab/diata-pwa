@@ -184,24 +184,7 @@
         </div>
       </div>
 
-      <!-- TARJETA DESTACADA: ACCESO DESDE NEVERA (NFC / QR) -->
-      <div onclick="appUi.openNfcQrModal()" class="glass-card p-5 rounded-2xl border border-brand-500/40 cursor-pointer hover:border-brand-500/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-brand-500/10">
-        <div class="flex items-center gap-3.5">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-500 flex items-center justify-center text-white shadow-md flex-shrink-0">
-            <i data-lucide="smartphone" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h4 class="font-bold text-base text-white light:text-slate-900">📲 Acceso desde la Nevera (NFC / QR)</h4>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">Acceso Rápido</span>
-            </div>
-            <p class="text-xs text-slate-400 light:text-slate-600 mt-0.5">Toca la pegatina NFC de tu nevera o escanea el QR con tu móvil para abrir la app al instante.</p>
-          </div>
-        </div>
-        <span class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 whitespace-nowrap self-end sm:self-auto shadow-md">
-          Configurar Nevera <i data-lucide="arrow-right" class="w-4 h-4"></i>
-        </span>
-      </div>
+
 
       <!-- HOY EN EL MENÚ (RESUMEN RÁPIDO) -->
       <div onclick="appNav.navigate('calendar')" class="glass-card p-5 rounded-2xl border border-slate-800 light:border-slate-200 cursor-pointer group hover:border-accent-500/50 transition shadow-lg">
@@ -423,6 +406,65 @@
       <div>
         <h2 class="text-2xl font-bold text-white light:text-slate-900">⚙️ Configuración & Backend</h2>
         <p class="text-xs text-slate-400 light:text-slate-600">Conexión a base de datos externa (Supabase / Google Sheets) y Webhooks de IA.</p>
+      </div>
+
+      <!-- VINCULACIÓN Y CONFIGURACIÓN PEGATINA NFC & CÓDIGO QR PARA NEVERA -->
+      <div class="glass-card p-5 rounded-2xl space-y-4 border border-brand-500/40 shadow-lg shadow-brand-500/10">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-sm uppercase text-slate-300 light:text-slate-700 flex items-center gap-2">
+            <i data-lucide="smartphone" class="w-4.5 h-4.5 text-brand-400"></i> Vinculación de Pegatina NFC & Código QR para la Nevera
+          </h3>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">Acceso Directo</span>
+        </div>
+        <p class="text-xs text-slate-400 light:text-slate-600">
+          Graba este enlace en tu pegatina NFC o imprime el código QR para pegarlo en la nevera y acceder a Diata al instante con el móvil.
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- OPCIÓN 1: PEGATINA NFC -->
+          <div class="p-4 rounded-xl bg-slate-900/80 light:bg-slate-100 border border-brand-500/30 space-y-2.5">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-lg bg-brand-500/20 text-brand-400 font-bold text-xs">📱 Opción 1 (Favorita)</span>
+              <h4 class="font-bold text-sm text-white light:text-slate-900">Pegatina NFC (Nevera)</h4>
+            </div>
+            <p class="text-xs text-slate-300 light:text-slate-700">
+              Al acercar la parte trasera de tu smartphone a la pegatina NFC en la nevera, el teléfono abre Diata al instante.
+            </p>
+            <div class="space-y-1.5 pt-1">
+              <label class="text-[11px] text-slate-400 font-semibold">Enlace de la App para tu pegatina NFC:</label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="nfc-url-input" readonly value="" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 light:bg-white border border-slate-700 text-xs text-brand-300 font-mono select-all" />
+                <button onclick="appUi.copyNfcUrl()" class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-brand-500/20">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+                </button>
+              </div>
+            </div>
+            <div class="p-3 rounded-lg bg-slate-950/60 light:bg-white border border-slate-800 text-[11px] text-slate-400 space-y-1">
+              <p class="font-bold text-slate-300">💡 Instrucciones rápidas NFC Tools:</p>
+              <ol class="list-decimal list-inside space-y-1 text-slate-300">
+                <li>Abre <strong>NFC Tools</strong> ➔ <strong>Escribir</strong> ➔ <strong>+ Añadir un registro</strong>.</li>
+                <li>Selecciona <strong>URL / URI</strong> y pega el enlace copiado arriba.</li>
+                <li>Pulsa en <strong>Escribir</strong> y acerca la pegatina al móvil.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- OPCIÓN 2: CÓDIGO QR -->
+          <div class="p-4 rounded-xl bg-slate-900/80 light:bg-slate-100 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="px-2 py-0.5 rounded-lg bg-accent-500/20 text-accent-400 font-bold text-xs">📷 Opción 2</span>
+                <h4 class="font-bold text-sm text-white light:text-slate-900">Código QR para Imprimir</h4>
+              </div>
+              <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-inner my-2">
+                <img id="qr-code-img" src="" alt="Código QR Nevera" class="w-36 h-36 object-contain" />
+              </div>
+            </div>
+            <button onclick="window.print()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+              <i data-lucide="printer" class="w-4 h-4"></i> Imprimir o Guardar Código QR
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="glass-card p-5 rounded-2xl space-y-4 border border-brand-500/30">
@@ -755,65 +797,7 @@
     </div>
   </div>
 
-  <!-- MODAL: CONECTAR PEGATINA NFC / QR DE NEVERA -->
-  <div id="modal-nfc-qr" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="glass-card w-full max-w-md rounded-2xl border p-5 space-y-4 max-h-[90vh] overflow-y-auto my-auto">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white light:text-slate-900 flex items-center gap-2">
-          <i data-lucide="smartphone" class="w-5 h-5 text-brand-400"></i> Pegatina NFC & QR para la Nevera
-        </h3>
-        <button onclick="appUi.closeNfcQrModal()" class="text-slate-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
 
-      <!-- Opciones NFC y QR -->
-      <div class="space-y-4">
-        <!-- OPCIÓN 1: PEGATINA NFC -->
-        <div class="p-4 rounded-xl bg-slate-900/80 light:bg-slate-100 border border-brand-500/30 space-y-2.5">
-          <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 rounded-lg bg-brand-500/20 text-brand-400 font-bold text-xs">📱 Opción 1 (Favorita)</span>
-            <h4 class="font-bold text-sm text-white light:text-slate-900">Pegatina NFC (Pegar el móvil a la nevera)</h4>
-          </div>
-          <p class="text-xs text-slate-300 light:text-slate-700">
-            Al acercar la parte trasera de tu smartphone a la pegatina NFC pegada en la nevera, el teléfono abre Diata en pantalla inmediatamente.
-          </p>
-          <div class="space-y-1.5 pt-1">
-            <label class="text-[11px] text-slate-400 font-semibold">Enlace de la App para grabar en tu pegatina NFC:</label>
-            <div class="flex items-center gap-2">
-              <input type="text" id="nfc-url-input" readonly value="" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 light:bg-white border border-slate-700 text-xs text-brand-300 font-mono" />
-              <button onclick="appUi.copyNfcUrl()" class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1">
-                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
-              </button>
-            </div>
-          </div>
-          <div class="p-2.5 rounded-lg bg-slate-950/60 light:bg-white border border-slate-800 text-[11px] text-slate-400 space-y-1">
-            <p class="font-bold text-slate-300">💡 Pasos para grabar tu pegatina NFC (30 segundos):</p>
-            <ol class="list-decimal list-inside space-y-0.5">
-              <li>Descarga la app gratuita <strong>NFC Tools</strong> (disponible en App Store y Google Play).</li>
-              <li>Abre NFC Tools y selecciona <strong>Escribir ➔ Añadir registro ➔ URL / Enlace web</strong>.</li>
-              <li>Pega el enlace copiado arriba y pulsa en <strong>Escribir</strong>.</li>
-              <li>Acerca la pegatina a la parte trasera de tu teléfono... ¡y listo!</li>
-            </ol>
-          </div>
-        </div>
-
-        <!-- OPCIÓN 2: CÓDIGO QR -->
-        <div class="p-4 rounded-xl bg-slate-900/80 light:bg-slate-100 border border-slate-800 space-y-3">
-          <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 rounded-lg bg-accent-500/20 text-accent-400 font-bold text-xs">📷 Opción 2</span>
-            <h4 class="font-bold text-sm text-white light:text-slate-900">Código QR para la Nevera</h4>
-          </div>
-          <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-inner">
-            <img id="qr-code-img" src="" alt="Código QR Nevera" class="w-44 h-44 object-contain" />
-          </div>
-          <button onclick="window.print()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
-            <i data-lucide="printer" class="w-4 h-4"></i> Imprimir o Guardar Código QR
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL: DETALLE Y CHEQUEO DE INGREDIENTES PARA COCINAR -->
   <div id="modal-recipe-detail" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
