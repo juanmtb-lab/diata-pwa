@@ -224,19 +224,20 @@ class AppDatabase {
     this.pushCloudSync();
   }
 
-  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE ---
   initCloudSync() {
-    this.cloudSyncId = 'ff8081819f7e10ae019fc87fc1f06aa2';
+    this.cloudSyncId = '019fc8c0-c09b-74dd-8e4a-ac2f5bbc157e';
+    this.cloudEndpoint = `https://jsonblob.com/api/jsonBlob/${this.cloudSyncId}`;
     this.isSyncing = false;
 
-    // Primer pull al arrancar
+    // Primer pull e integración al arrancar
     this.pullCloudSync();
 
-    // Polling ligero en segundo plano cada 6 segundos para sincronización instantánea entre móviles
+    // Polling ultrarrápido en segundo plano cada 3 segundos para sincronización instantánea entre móviles y PC
     if (!this._cloudSyncInterval) {
       this._cloudSyncInterval = setInterval(() => {
         this.pullCloudSync(true);
-      }, 6000);
+      }, 3000);
     }
 
     // Sincronizar automáticamente cuando el usuario desbloquea o vuelve a la app
@@ -255,37 +256,126 @@ class AppDatabase {
     if (this.isSyncing) return;
     try {
       this.isSyncing = true;
-      const res = await fetch(`https://api.restful-api.dev/objects/${this.cloudSyncId}`);
+      const res = await fetch(this.cloudEndpoint, {
+        headers: { 'Accept': 'application/json' }
+      });
       if (!res.ok) return;
-      const json = await res.json();
-      if (!json || !json.data) return;
+      const cloudData = await res.json();
+      if (!cloudData) return;
 
-      const cloudData = json.data;
-      const localLastSync = parseInt(localStorage.getItem('qr_menu_last_cloud_sync') || '0');
+      let hasLocalChanges = false;
+      let hasCloudChanges = false;
 
-      // Si la nube tiene datos más recientes que los locales, actualizar local
-      if (cloudData.updated_at && cloudData.updated_at > localLastSync) {
-        if (cloudData.products && Array.isArray(cloudData.products)) {
-          localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
+      // 1. Fusionar Productos (Catálogo Habitual)
+      if (Array.isArray(cloudData.products)) {
+        const localProducts = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
+        const productMap = new Map();
+        
+        // Cargar productos de la nube
+        cloudData.products.forEach(p => {
+          if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
+        });
+
+        // Fusión bidireccional: incorporar locales que no estén en la nube
+        localProducts.forEach(p => {
+          if (p && p.name) {
+            const key = p.name.toLowerCase().trim();
+            if (!productMap.has(key)) {
+              productMap.set(key, p);
+              hasLocalChanges = true;
+            }
+          }
+        });
+
+        const mergedProducts = Array.from(productMap.values());
+        if (mergedProducts.length !== localProducts.length || hasLocalChanges) {
+          localStorage.setItem('qr_menu_products', JSON.stringify(mergedProducts));
+          hasCloudChanges = true;
         }
-        if (cloudData.recipes && Array.isArray(cloudData.recipes)) {
-          localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
+      }
+
+      // 2. Fusionar Lista de la Compra
+      if (Array.isArray(cloudData.shopping)) {
+        const localShopping = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
+        const shoppingMap = new Map();
+
+        // Cargar ítems de la nube
+        cloudData.shopping.forEach(s => {
+          if (s && (s.id || s.name)) {
+            const key = (s.id || s.name).toLowerCase().trim();
+            shoppingMap.set(key, s);
+          }
+        });
+
+        // Fusión bidireccional: incorporar ítems locales que falten en la nube
+        localShopping.forEach(s => {
+          if (s && (s.id || s.name)) {
+            const key = (s.id || s.name).toLowerCase().trim();
+            if (!shoppingMap.has(key)) {
+              shoppingMap.set(key, s);
+              hasLocalChanges = true;
+            }
+          }
+        });
+
+        const mergedShopping = Array.from(shoppingMap.values());
+        if (JSON.stringify(mergedShopping) !== JSON.stringify(localShopping)) {
+          localStorage.setItem('qr_menu_shopping', JSON.stringify(mergedShopping));
+          hasCloudChanges = true;
         }
-        if (cloudData.shopping && Array.isArray(cloudData.shopping)) {
-          localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
+      }
+
+      // 3. Fusionar Recetas
+      if (Array.isArray(cloudData.recipes)) {
+        const localRecipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
+        const recipeMap = new Map();
+
+        cloudData.recipes.forEach(r => {
+          if (r && (r.id || r.title)) {
+            const key = (r.id || r.title).toLowerCase().trim();
+            recipeMap.set(key, r);
+          }
+        });
+
+        localRecipes.forEach(r => {
+          if (r && (r.id || r.title)) {
+            const key = (r.id || r.title).toLowerCase().trim();
+            if (!recipeMap.has(key)) {
+              recipeMap.set(key, r);
+              hasLocalChanges = true;
+            }
+          }
+        });
+
+        const mergedRecipes = Array.from(recipeMap.values());
+        if (JSON.stringify(mergedRecipes) !== JSON.stringify(localRecipes)) {
+          localStorage.setItem('qr_menu_recipes', JSON.stringify(mergedRecipes));
+          hasCloudChanges = true;
         }
-        if (cloudData.weekly && Array.isArray(cloudData.weekly)) {
+      }
+
+      // 4. Menú Semanal
+      if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
+        const localWeekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
+        if (JSON.stringify(cloudData.weekly) !== JSON.stringify(localWeekly)) {
           localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
+          hasCloudChanges = true;
         }
-        localStorage.setItem('qr_menu_last_cloud_sync', String(cloudData.updated_at));
+      }
 
+      // Si hubo cambios traídos de la nube, refrescar la interfaz inmediatamente
+      if (hasCloudChanges) {
         if (window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
           window.appUi.refreshCurrentView();
         }
-        this.updateSyncIndicator(true);
-      } else if (!isSilent) {
-        this.updateSyncIndicator(true);
       }
+
+      // Si el terminal local tenía datos nuevos que no estaban en la nube, subirlos de vuelta
+      if (hasLocalChanges) {
+        this.pushCloudSync();
+      }
+
+      this.updateSyncIndicator(true);
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
     } finally {
@@ -294,23 +384,17 @@ class AppDatabase {
   }
 
   async pushCloudSync() {
-    const timestamp = Date.now();
-    localStorage.setItem('qr_menu_last_cloud_sync', String(timestamp));
-
     const payload = {
-      name: 'diata_family_juanm',
-      data: {
-        updated_at: timestamp,
-        products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
-        recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
-        shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
-        weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
-      }
+      updated_at: Date.now(),
+      products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
+      recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
+      shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
+      weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
     };
 
     try {
       this.updateSyncIndicator('syncing');
-      const res = await fetch(`https://api.restful-api.dev/objects/${this.cloudSyncId}`, {
+      const res = await fetch(this.cloudEndpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
