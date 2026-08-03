@@ -251,28 +251,34 @@ class AppUI {
       btnTheme.addEventListener('click', () => this.toggleTheme());
     }
 
-    // Formulario de añadir producto al vuelo
+    // Formulario unificado de búsqueda y añadir producto a la lista
     const formShopping = document.getElementById('form-add-shopping');
     if (formShopping) {
       formShopping.addEventListener('submit', (e) => {
         e.preventDefault();
-        const nameInput = document.getElementById('input-shopping-name');
+        const searchInput = document.getElementById('input-search-shopping');
         const catSelect = document.getElementById('select-shopping-category');
         const qtyInput = document.getElementById('input-shopping-qty');
 
-        if (nameInput.value.trim()) {
+        const typedName = searchInput ? searchInput.value.trim() : '';
+        if (typedName) {
           const parsed = parseQuantityAndUnit(qtyInput ? qtyInput.value : '1', 'uds');
+          const category = catSelect ? catSelect.value : 'Despensa';
+
           appDb.addShoppingItem({
-            name: nameInput.value.trim(),
-            category: catSelect.value,
+            name: typedName,
+            category: category,
             quantity: parsed.quantity,
-            unit: parsed.unit,
+            unit: parsed.unit || 'uds',
             status: 'pending'
           });
-          nameInput.value = '';
-          qtyInput.value = '1';
-          this.renderShoppingList();
-          this.showToast('Producto añadido a la lista 🛒');
+
+          // Garantizar que el alimento también quede guardado en el catálogo habitual
+          appDb.ensureProductsExist([{ name: typedName, category: category, unit: parsed.unit || 'uds' }]);
+
+          if (qtyInput) qtyInput.value = '1';
+          this.clearShoppingSearch();
+          this.showToast(`'${typedName}' añadido a la Lista de la Compra 🛒`);
         }
       });
     }
