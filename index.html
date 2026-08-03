@@ -251,6 +251,13 @@
         </div>
       </div>
 
+      <!-- BARRA DE BÚSQUEDA EN LA LISTA DE LA COMPRA -->
+      <div class="relative w-full">
+        <input type="text" id="input-search-shopping" oninput="appUi.filterShoppingListBySearch()" placeholder="🔍 Buscar alimento o producto en tu lista de la compra..."
+          class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-sm text-white light:text-slate-900 focus:outline-none focus:border-brand-500 placeholder-slate-500 shadow-inner" />
+        <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-3"></i>
+      </div>
+
       <!-- FORMULARIO DE AÑADIR AL VUELO -->
       <form id="form-add-shopping" class="glass-card p-3.5 rounded-2xl flex flex-col sm:flex-row items-center gap-2 border">
         <input type="text" id="input-shopping-name" placeholder="Añadir producto al vuelo (ej: Leche)..." required
@@ -263,7 +270,7 @@
             <option value="Congelados">❄️ Congelados</option>
             <option value="Especias">🌿 Especias</option>
             <option value="Salsas">🥫 Salsas</option>
-            <option value="Baño">🛁 Baño</option>
+            <option value="Aseo Personal">🧼 Aseo Personal</option>
             <option value="Limpieza">🧹 Limpieza del Hogar</option>
           </select>
           <input type="text" id="input-shopping-qty" value="1" placeholder="Ej: 1, 0.5, 1kg" class="w-24 px-2 py-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-center text-white light:text-slate-900 font-bold" />
@@ -293,8 +300,8 @@
         <button onclick="appUi.filterCategory('Salsas')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
           🥫 Salsas (<span id="cat-count-Salsas">0</span>)
         </button>
-        <button onclick="appUi.filterCategory('Baño')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
-          🛁 Baño (<span id="cat-count-Baño">0</span>)
+        <button onclick="appUi.filterCategory('Aseo Personal')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🧼 Aseo Personal (<span id="cat-count-Aseo Personal">0</span>)
         </button>
         <button onclick="appUi.filterCategory('Limpieza')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
           🧹 Limpieza (<span id="cat-count-Limpieza">0</span>)
@@ -628,7 +635,7 @@
               <option value="Congelados">❄️ Congelados</option>
               <option value="Especias">🌿 Especias</option>
               <option value="Salsas">🥫 Salsas</option>
-              <option value="Baño">🛁 Baño</option>
+              <option value="Aseo Personal">🧼 Aseo Personal</option>
               <option value="Limpieza">🧹 Limpieza del Hogar</option>
             </select>
           </div>
@@ -790,7 +797,7 @@
               <option value="Congelados">❄️ Congelados</option>
               <option value="Especias">🌿 Especias</option>
               <option value="Salsas">🥫 Salsas</option>
-              <option value="Baño">🛁 Baño</option>
+              <option value="Aseo Personal">🧼 Aseo Personal</option>
               <option value="Limpieza">🧹 Limpieza del Hogar</option>
             </select>
           </div>
@@ -952,14 +959,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=107"></script>
-  <script src="app.js?v=107"></script>
+  <script src="db.js?v=108"></script>
+  <script src="app.js?v=108"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v107')) caches.delete(key);
+          if (!key.includes('v108')) caches.delete(key);
         });
       });
     }

@@ -20,8 +20,8 @@ const DEFAULT_PRODUCTS = [
   { id: 'p15', name: 'Tomate frito', category: 'Salsas', unit: 'bote', is_essential: true },
   { id: 'p16', name: 'Salsa de Soja', category: 'Salsas', unit: 'bote', is_essential: false },
   { id: 'p17', name: 'Mayonesa', category: 'Salsas', unit: 'bote', is_essential: false },
-  { id: 'p18', name: 'Papel higiénico', category: 'Baño', unit: 'paquete', is_essential: true },
-  { id: 'p19', name: 'Gel de baño / Champú', category: 'Baño', unit: 'bote', is_essential: true },
+  { id: 'p18', name: 'Papel higiénico', category: 'Aseo Personal', unit: 'paquete', is_essential: true },
+  { id: 'p19', name: 'Gel de baño / Champú', category: 'Aseo Personal', unit: 'bote', is_essential: true },
   { id: 'p20', name: 'Detergente ropa', category: 'Limpieza', unit: 'bote', is_essential: true },
   { id: 'p21', name: 'Lavavajillas', category: 'Limpieza', unit: 'bote', is_essential: true },
   { id: 'p22', name: 'Limpiasuelos / Lejía', category: 'Limpieza', unit: 'bote', is_essential: false }
@@ -180,6 +180,15 @@ class AppDatabase {
         theme: 'dark'
       }));
     }
+
+    // Migración automática de la categoría Baño a Aseo Personal
+    ['qr_menu_products', 'qr_menu_recipes', 'qr_menu_shopping'].forEach(key => {
+      let raw = localStorage.getItem(key);
+      if (raw && raw.includes('Baño')) {
+        raw = raw.replace(/"category"\s*:\s*"Baño"/g, '"category":"Aseo Personal"');
+        localStorage.setItem(key, raw);
+      }
+    });
 
     // Inicializar Sincronización Multidispositivo en la Nube
     this.initCloudSync();

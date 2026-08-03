@@ -89,6 +89,7 @@ class AppUI {
     this.catalogSortMode = 'alpha'; // 'alpha' o 'usage'
     this.assignTarget = null; // { dayIndex, mealType }
     this.currentRecipeIngredients = [];
+    this.shoppingSearchTerm = '';
     this.initEvents();
   }
 
@@ -99,6 +100,22 @@ class AppUI {
     if (view === 'calendar') this.renderWeeklyCalendar();
     if (view === 'recipes') this.renderRecipes();
     if (view === 'settings') this.loadSettingsForm();
+
+    const modalCatalog = document.getElementById('modal-catalog');
+    if (modalCatalog && !modalCatalog.classList.contains('hidden')) {
+      this.renderCatalogList();
+    }
+
+    const popIng = document.getElementById('modal-select-ingredient-popup');
+    if (popIng && !popIng.classList.contains('hidden')) {
+      this.filterIngredientPopupList();
+    }
+  }
+
+  filterShoppingListBySearch() {
+    const input = document.getElementById('input-search-shopping');
+    this.shoppingSearchTerm = input ? input.value.toLowerCase().trim() : '';
+    this.renderShoppingList();
   }
 
   setCatalogSort(mode) {
@@ -396,7 +413,7 @@ class AppUI {
       Congelados: list.filter(i => i.category === 'Congelados' && i.status !== 'bought').length,
       Especias: list.filter(i => i.category === 'Especias' && i.status !== 'bought').length,
       Salsas: list.filter(i => i.category === 'Salsas' && i.status !== 'bought').length,
-      Baño: list.filter(i => i.category === 'Baño' && i.status !== 'bought').length,
+      'Aseo Personal': list.filter(i => i.category === 'Aseo Personal' && i.status !== 'bought').length,
       Limpieza: list.filter(i => i.category === 'Limpieza' && i.status !== 'bought').length
     };
 
@@ -405,10 +422,17 @@ class AppUI {
       if (el) el.textContent = catCounts[cat];
     });
 
-    // Filtrar la lista
-    const filteredList = this.activeCategoryFilter === 'all'
+    // Filtrar la lista por categoría y buscador
+    let filteredList = this.activeCategoryFilter === 'all'
       ? list
       : list.filter(i => i.category === this.activeCategoryFilter);
+
+    if (this.shoppingSearchTerm) {
+      filteredList = filteredList.filter(i =>
+        (i.name || '').toLowerCase().includes(this.shoppingSearchTerm) ||
+        (i.category || '').toLowerCase().includes(this.shoppingSearchTerm)
+      );
+    }
 
     if (filteredList.length === 0) {
       container.innerHTML = `
@@ -1335,7 +1359,7 @@ class AppUI {
       Congelados: '❄️',
       Especias: '🌿',
       Salsas: '🥫',
-      Baño: '🛁',
+      'Aseo Personal': '🧼',
       Limpieza: '🧹'
     };
 
@@ -1429,7 +1453,7 @@ class AppUI {
       Congelados: '❄️',
       Especias: '🌿',
       Salsas: '🥫',
-      Baño: '🛁',
+      'Aseo Personal': '🧼',
       Limpieza: '🧹'
     };
 
