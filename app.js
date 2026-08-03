@@ -114,8 +114,129 @@ class AppUI {
 
   filterShoppingListBySearch() {
     const input = document.getElementById('input-search-shopping');
-    this.shoppingSearchTerm = input ? input.value.toLowerCase().trim() : '';
+    const clearBtn = document.getElementById('btn-clear-search-shopping');
+    const panel = document.getElementById('shopping-search-results-panel');
+    const matchesContainer = document.getElementById('shopping-catalog-matches-container');
+    const countEl = document.getElementById('search-results-count');
+
+    const rawVal = input ? input.value : '';
+    const term = rawVal.trim().toLowerCase();
+    this.shoppingSearchTerm = term;
+
+    if (clearBtn) {
+      if (term) clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
+    }
+
+    // Filtrar los elementos existentes en la lista de la compra
     this.renderShoppingList();
+
+    if (!term) {
+      if (panel) panel.classList.add('hidden');
+      return;
+    }
+
+    // Buscar coincidencias en el Catálogo habitual de productos
+    const products = appDb.getProducts('alpha');
+    const shoppingList = appDb.getShoppingList();
+    const currentShoppingNames = new Set(shoppingList.filter(i => i.status !== 'bought').map(i => i.name.toLowerCase().trim()));
+
+    const matchingProducts = products.filter(p =>
+      (p.name || '').toLowerCase().includes(term) || (p.category || '').toLowerCase().includes(term)
+    );
+
+    if (panel) panel.classList.remove('hidden');
+
+    const catEmoji = {
+      Frescos: '🥬',
+      Despensa: '🥫',
+      Congelados: '❄️',
+      Especias: '🌿',
+      Salsas: '🥫',
+      'Aseo Personal': '🧼',
+      Limpieza: '🧹'
+    };
+
+    let html = '';
+
+    if (matchingProducts.length > 0) {
+      html += matchingProducts.map(p => {
+        const isAlreadyInList = currentShoppingNames.has(p.name.toLowerCase().trim());
+        return `
+          <div class="glass-card p-2 rounded-xl border border-slate-800 flex items-center justify-between gap-2 bg-slate-900/90 hover:border-brand-500/50 transition">
+            <div class="flex items-center gap-2">
+              <span class="text-xs">${catEmoji[p.category] || '📦'}</span>
+              <div>
+                <span class="text-xs font-bold text-white">${p.name}</span>
+                <span class="text-[10px] text-slate-400 ml-1.5">(${p.category})</span>
+              </div>
+            </div>
+            ${isAlreadyInList ? `
+              <span class="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 flex items-center gap-1">
+                <i data-lucide="check" class="w-3 h-3"></i> En tu lista
+              </span>
+            ` : `
+              <button type="button" onclick="appUi.addCatalogItemToShoppingFromSearch('${p.name.replace(/'/g, "\\'")}', '${p.category}', '${p.unit || p.default_unit || 'uds'}')"
+                class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-bold shadow-md flex items-center gap-1 transition">
+                <i data-lucide="plus" class="w-3 h-3"></i> Añadir
+              </button>
+            `}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Si el término no coincide exactamente con ningún producto del catálogo, ofrecer añadirlo directamente al vuelo
+    const exactMatch = matchingProducts.some(p => (p.name || '').toLowerCase().trim() === term);
+    if (!exactMatch) {
+      html += `
+        <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 text-xs text-amber-300 font-medium">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-amber-400"></i>
+            <span>Añadir "<strong>${rawVal.trim()}</strong>" como producto nuevo</span>
+          </div>
+          <button type="button" onclick="appUi.addCustomItemToShoppingFromSearch('${rawVal.trim().replace(/'/g, "\\'")}')"
+            class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs shadow-md transition whitespace-nowrap">
+            ➕ Añadir Ya
+          </button>
+        </div>
+      `;
+    }
+
+    if (matchesContainer) matchesContainer.innerHTML = html;
+    if (countEl) countEl.textContent = `${matchingProducts.length} en catálogo`;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  addCatalogItemToShoppingFromSearch(name, category, unit) {
+    appDb.addShoppingItem({
+      name: name,
+      category: category || 'Despensa',
+      quantity: 1,
+      unit: unit || 'uds',
+      status: 'pending'
+    });
+    this.showToast(`'${name}' añadido a tu Lista de la Compra 🛒`);
+    this.filterShoppingListBySearch();
+  }
+
+  addCustomItemToShoppingFromSearch(name) {
+    if (!name) return;
+    appDb.addShoppingItem({
+      name: name,
+      category: 'Despensa',
+      quantity: 1,
+      unit: 'uds',
+      status: 'pending'
+    });
+    this.showToast(`'${name}' añadido a tu Lista 🛒`);
+    this.clearShoppingSearch();
+  }
+
+  clearShoppingSearch() {
+    const input = document.getElementById('input-search-shopping');
+    if (input) input.value = '';
+    this.filterShoppingListBySearch();
   }
 
   setCatalogSort(mode) {
