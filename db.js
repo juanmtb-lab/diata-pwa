@@ -3,28 +3,42 @@
  */
 
 const DEFAULT_PRODUCTS = [
-  { id: 'p1', name: 'Leche entera', category: 'Despensa', unit: 'l', is_essential: true },
-  { id: 'p2', name: 'Huevos camperos', category: 'Frescos', unit: 'docena', is_essential: true },
-  { id: 'p3', name: 'Pechuga de pollo', category: 'Frescos', unit: 'kg', is_essential: true },
-  { id: 'p4', name: 'Arroz integral', category: 'Despensa', unit: 'kg', is_essential: true },
-  { id: 'p5', name: 'Aceite de Oliva VV', category: 'Despensa', unit: 'l', is_essential: true },
-  { id: 'p6', name: 'Tomates ensalada', category: 'Frescos', unit: 'kg', is_essential: false },
+  { id: 'p1', name: 'Aceite de Oliva VV', category: 'Despensa', unit: 'ml', is_essential: true },
+  { id: 'p2', name: 'Aguacate', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p3', name: 'Ajo', category: 'Frescos', unit: 'cabeza', is_essential: true },
+  { id: 'p4', name: 'Atún', category: 'Despensa', unit: 'uds', is_essential: false },
+  { id: 'p5', name: 'Carne picada de ternera', category: 'Frescos', unit: 'g', is_essential: false },
+  { id: 'p6', name: 'Cebolla', category: 'Frescos', unit: 'uds', is_essential: true },
   { id: 'p7', name: 'Espinacas frescas', category: 'Frescos', unit: 'bolsa', is_essential: false },
-  { id: 'p8', name: 'Salmón congelado', category: 'Congelados', unit: 'paquete', is_essential: false },
-  { id: 'p9', name: 'Guisantes congelados', category: 'Congelados', unit: 'kg', is_essential: false },
-  { id: 'p10', name: 'Orégano seco', category: 'Especias', unit: 'bote', is_essential: false },
-  { id: 'p11', name: 'Pimentón de la Vera', category: 'Especias', unit: 'bote', is_essential: false },
-  { id: 'p12', name: 'Ajo', category: 'Frescos', unit: 'cabeza', is_essential: true },
-  { id: 'p13', name: 'Cebolla', category: 'Frescos', unit: 'kg', is_essential: true },
-  { id: 'p14', name: 'Pasta Penne', category: 'Despensa', unit: 'paquete', is_essential: true },
-  { id: 'p15', name: 'Tomate frito', category: 'Salsas', unit: 'bote', is_essential: true },
-  { id: 'p16', name: 'Salsa de Soja', category: 'Salsas', unit: 'bote', is_essential: false },
-  { id: 'p17', name: 'Mayonesa', category: 'Salsas', unit: 'bote', is_essential: false },
-  { id: 'p18', name: 'Papel higiénico', category: 'Aseo Personal', unit: 'paquete', is_essential: true },
-  { id: 'p19', name: 'Gel de baño / Champú', category: 'Aseo Personal', unit: 'bote', is_essential: true },
-  { id: 'p20', name: 'Detergente ropa', category: 'Limpieza', unit: 'bote', is_essential: true },
-  { id: 'p21', name: 'Lavavajillas', category: 'Limpieza', unit: 'bote', is_essential: true },
-  { id: 'p22', name: 'Limpiasuelos / Lejía', category: 'Limpieza', unit: 'bote', is_essential: false }
+  { id: 'p8', name: 'Frutos secos', category: 'Despensa', unit: 'bolsa', is_essential: false },
+  { id: 'p9', name: 'Guisantes congelados', category: 'Congelados', unit: 'bolsa', is_essential: false },
+  { id: 'p10', name: 'Huevos camperos', category: 'Frescos', unit: 'docena', is_essential: true },
+  { id: 'p11', name: 'Leche entera', category: 'Despensa', unit: 'l', is_essential: true },
+  { id: 'p12', name: 'Lechuga', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p13', name: 'Mayonesa', category: 'Salsas', unit: 'bote', is_essential: false },
+  { id: 'p14', name: 'Nueces', category: 'Despensa', unit: 'g', is_essential: false },
+  { id: 'p15', name: 'Orégano seco', category: 'Especias', unit: 'bote', is_essential: false },
+  { id: 'p16', name: 'Pasta Penne', category: 'Despensa', unit: 'paquete', is_essential: true },
+  { id: 'p17', name: 'Patatas Fritas', category: 'Despensa', unit: 'bolsa', is_essential: false },
+  { id: 'p18', name: 'Pechuga de pollo', category: 'Frescos', unit: 'kg', is_essential: true },
+  { id: 'p19', name: 'Pepino', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p20', name: 'Pimentón de la Vera', category: 'Especias', unit: 'bote', is_essential: false },
+  { id: 'p21', name: 'Pimiento Rojo', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p22', name: 'Pimiento Verde', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p23', name: 'Queso Havarti', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p24', name: 'Queso Parmegiano', category: 'Frescos', unit: 'g', is_essential: false },
+  { id: 'p25', name: 'Salmón congelado', category: 'Congelados', unit: 'uds', is_essential: false },
+  { id: 'p26', name: 'Salsa de Soja', category: 'Salsas', unit: 'bote', is_essential: false },
+  { id: 'p27', name: 'Tacos de Maíz', category: 'Despensa', unit: 'paquete', is_essential: false },
+  { id: 'p28', name: 'Tomate frito', category: 'Salsas', unit: 'bote', is_essential: true },
+  { id: 'p29', name: 'Tomates ensalada', category: 'Frescos', unit: 'kg', is_essential: false },
+  { id: 'p30', name: 'Vasitos Arroz', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p31', name: 'Vasitos quinoa', category: 'Frescos', unit: 'uds', is_essential: false },
+  { id: 'p32', name: 'Papel higiénico', category: 'Aseo Personal', unit: 'paquete', is_essential: true },
+  { id: 'p33', name: 'Gel de baño / Champú', category: 'Aseo Personal', unit: 'bote', is_essential: true },
+  { id: 'p34', name: 'Detergente ropa', category: 'Limpieza', unit: 'bote', is_essential: true },
+  { id: 'p35', name: 'Lavavajillas', category: 'Limpieza', unit: 'bote', is_essential: true },
+  { id: 'p36', name: 'Limpiasuelos / Lejía', category: 'Limpieza', unit: 'bote', is_essential: false }
 ];
 
 const DEFAULT_RECIPES = [
@@ -160,9 +174,27 @@ class AppDatabase {
   }
 
   init() {
-    if (!localStorage.getItem('qr_menu_products')) {
-      localStorage.setItem('qr_menu_products', JSON.stringify(DEFAULT_PRODUCTS));
+    let products = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
+    let productsUpdated = false;
+
+    if (products.length === 0) {
+      products = DEFAULT_PRODUCTS;
+      productsUpdated = true;
+    } else {
+      // Garantizar que todos los productos transcritos de las fotos existan sin duplicar
+      DEFAULT_PRODUCTS.forEach(defP => {
+        const exists = products.some(p => (p.name || '').toLowerCase().trim() === defP.name.toLowerCase().trim());
+        if (!exists) {
+          products.push(defP);
+          productsUpdated = true;
+        }
+      });
     }
+
+    if (productsUpdated) {
+      localStorage.setItem('qr_menu_products', JSON.stringify(products));
+    }
+
     if (!localStorage.getItem('qr_menu_recipes')) {
       localStorage.setItem('qr_menu_recipes', JSON.stringify(DEFAULT_RECIPES));
     }
@@ -192,6 +224,10 @@ class AppDatabase {
 
     // Inicializar Sincronización Multidispositivo en la Nube
     this.initCloudSync();
+
+    if (productsUpdated) {
+      this.pushCloudSync();
+    }
   }
 
   // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ---
