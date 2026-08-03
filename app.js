@@ -91,6 +91,15 @@ class AppUI {
     this.initEvents();
   }
 
+  refreshCurrentView() {
+    const view = window.appNav ? window.appNav.currentView : 'landing';
+    if (view === 'landing') this.renderLanding();
+    if (view === 'shopping') this.renderShoppingList();
+    if (view === 'calendar') this.renderWeeklyCalendar();
+    if (view === 'recipes') this.renderRecipes();
+    if (view === 'settings') this.loadSettingsForm();
+  }
+
   setCatalogSort(mode) {
     this.catalogSortMode = mode;
     this.openCatalogModal();
@@ -434,7 +443,9 @@ class AppUI {
       Despensa: list.filter(i => i.category === 'Despensa' && i.status !== 'bought').length,
       Congelados: list.filter(i => i.category === 'Congelados' && i.status !== 'bought').length,
       Especias: list.filter(i => i.category === 'Especias' && i.status !== 'bought').length,
-      Salsas: list.filter(i => i.category === 'Salsas' && i.status !== 'bought').length
+      Salsas: list.filter(i => i.category === 'Salsas' && i.status !== 'bought').length,
+      Baño: list.filter(i => i.category === 'Baño' && i.status !== 'bought').length,
+      Limpieza: list.filter(i => i.category === 'Limpieza' && i.status !== 'bought').length
     };
 
     Object.keys(catCounts).forEach(cat => {
@@ -1368,6 +1379,8 @@ class AppUI {
           <option value="Congelados" ${activeCategory === 'Congelados' ? 'selected' : ''}>❄️ Congelados</option>
           <option value="Especias" ${activeCategory === 'Especias' ? 'selected' : ''}>🌿 Especias</option>
           <option value="Salsas" ${activeCategory === 'Salsas' ? 'selected' : ''}>🥫 Salsas</option>
+          <option value="Baño" ${activeCategory === 'Baño' ? 'selected' : ''}>🛁 Baño</option>
+          <option value="Limpieza" ${activeCategory === 'Limpieza' ? 'selected' : ''}>🧹 Limpieza del Hogar</option>
         </select>
       </div>
     `;

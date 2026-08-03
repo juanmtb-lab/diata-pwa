@@ -263,6 +263,8 @@
             <option value="Congelados">❄️ Congelados</option>
             <option value="Especias">🌿 Especias</option>
             <option value="Salsas">🥫 Salsas</option>
+            <option value="Baño">🛁 Baño</option>
+            <option value="Limpieza">🧹 Limpieza del Hogar</option>
           </select>
           <input type="text" id="input-shopping-qty" value="1" placeholder="Ej: 1, 0.5, 1kg" class="w-24 px-2 py-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-700 light:border-slate-300 text-xs text-center text-white light:text-slate-900 font-bold" />
           <button type="submit" class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition shadow-lg shadow-brand-500/20 whitespace-nowrap">
@@ -290,6 +292,12 @@
         </button>
         <button onclick="appUi.filterCategory('Salsas')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
           🥫 Salsas (<span id="cat-count-Salsas">0</span>)
+        </button>
+        <button onclick="appUi.filterCategory('Baño')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🛁 Baño (<span id="cat-count-Baño">0</span>)
+        </button>
+        <button onclick="appUi.filterCategory('Limpieza')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🧹 Limpieza (<span id="cat-count-Limpieza">0</span>)
         </button>
       </div>
 
@@ -620,6 +628,8 @@
               <option value="Congelados">❄️ Congelados</option>
               <option value="Especias">🌿 Especias</option>
               <option value="Salsas">🥫 Salsas</option>
+              <option value="Baño">🛁 Baño</option>
+              <option value="Limpieza">🧹 Limpieza del Hogar</option>
             </select>
           </div>
           <div>
@@ -849,14 +859,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=99"></script>
-  <script src="app.js?v=99"></script>
+  <script src="db.js?v=106"></script>
+  <script src="app.js?v=106"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v99')) caches.delete(key);
+          if (!key.includes('v106')) caches.delete(key);
         });
       });
     }

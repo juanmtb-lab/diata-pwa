@@ -19,7 +19,12 @@ const DEFAULT_PRODUCTS = [
   { id: 'p14', name: 'Pasta Penne', category: 'Despensa', unit: 'paquete', is_essential: true },
   { id: 'p15', name: 'Tomate frito', category: 'Salsas', unit: 'bote', is_essential: true },
   { id: 'p16', name: 'Salsa de Soja', category: 'Salsas', unit: 'bote', is_essential: false },
-  { id: 'p17', name: 'Mayonesa', category: 'Salsas', unit: 'bote', is_essential: false }
+  { id: 'p17', name: 'Mayonesa', category: 'Salsas', unit: 'bote', is_essential: false },
+  { id: 'p18', name: 'Papel higiénico', category: 'Baño', unit: 'paquete', is_essential: true },
+  { id: 'p19', name: 'Gel de baño / Champú', category: 'Baño', unit: 'bote', is_essential: true },
+  { id: 'p20', name: 'Detergente ropa', category: 'Limpieza', unit: 'bote', is_essential: true },
+  { id: 'p21', name: 'Lavavajillas', category: 'Limpieza', unit: 'bote', is_essential: true },
+  { id: 'p22', name: 'Limpiasuelos / Lejía', category: 'Limpieza', unit: 'bote', is_essential: false }
 ];
 
 const DEFAULT_RECIPES = [
@@ -175,9 +180,130 @@ class AppDatabase {
         theme: 'dark'
       }));
     }
+
+    // Inicializar Sincronización Multidispositivo en la Nube
+    this.initCloudSync();
   }
 
-  // --- COMPRA ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ---
+  initCloudSync() {
+    this.cloudSyncId = 'ff8081819f7e10ae019fc87fc1f06aa2';
+    this.isSyncing = false;
+
+    // Primer pull al arrancar
+    this.pullCloudSync();
+
+    // Polling ligero en segundo plano cada 6 segundos para sincronización instantánea entre móviles
+    if (!this._cloudSyncInterval) {
+      this._cloudSyncInterval = setInterval(() => {
+        this.pullCloudSync(true);
+      }, 6000);
+    }
+
+    // Sincronizar automáticamente cuando el usuario desbloquea o vuelve a la app
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.pullCloudSync();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      this.pullCloudSync();
+    });
+  }
+
+  async pullCloudSync(isSilent = false) {
+    if (this.isSyncing) return;
+    try {
+      this.isSyncing = true;
+      const res = await fetch(`https://api.restful-api.dev/objects/${this.cloudSyncId}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json || !json.data) return;
+
+      const cloudData = json.data;
+      const localLastSync = parseInt(localStorage.getItem('qr_menu_last_cloud_sync') || '0');
+
+      // Si la nube tiene datos más recientes que los locales, actualizar local
+      if (cloudData.updated_at && cloudData.updated_at > localLastSync) {
+        if (cloudData.products && Array.isArray(cloudData.products)) {
+          localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
+        }
+        if (cloudData.recipes && Array.isArray(cloudData.recipes)) {
+          localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
+        }
+        if (cloudData.shopping && Array.isArray(cloudData.shopping)) {
+          localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
+        }
+        if (cloudData.weekly && Array.isArray(cloudData.weekly)) {
+          localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
+        }
+        localStorage.setItem('qr_menu_last_cloud_sync', String(cloudData.updated_at));
+
+        if (window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
+          window.appUi.refreshCurrentView();
+        }
+        this.updateSyncIndicator(true);
+      } else if (!isSilent) {
+        this.updateSyncIndicator(true);
+      }
+    } catch (err) {
+      console.warn('Pull cloud sync error:', err);
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  async pushCloudSync() {
+    const timestamp = Date.now();
+    localStorage.setItem('qr_menu_last_cloud_sync', String(timestamp));
+
+    const payload = {
+      name: 'diata_family_juanm',
+      data: {
+        updated_at: timestamp,
+        products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
+        recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
+        shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
+        weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
+      }
+    };
+
+    try {
+      this.updateSyncIndicator('syncing');
+      const res = await fetch(`https://api.restful-api.dev/objects/${this.cloudSyncId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        this.updateSyncIndicator(true);
+      } else {
+        this.updateSyncIndicator(false);
+      }
+    } catch (err) {
+      console.warn('Push cloud sync error:', err);
+      this.updateSyncIndicator(false);
+    }
+  }
+
+  updateSyncIndicator(state) {
+    const dot = document.getElementById('connection-status-dot');
+    const text = document.getElementById('connection-status-text');
+    if (!dot || !text) return;
+
+    if (state === 'syncing') {
+      dot.className = 'w-2 h-2 rounded-full bg-amber-400 inline-block animate-ping';
+      text.textContent = 'Sincronizando...';
+    } else if (state === true) {
+      dot.className = 'w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse';
+      text.textContent = 'En la Nube (Sincronizado)';
+    } else {
+      dot.className = 'w-2 h-2 rounded-full bg-slate-500 inline-block';
+      text.textContent = 'Modo Local';
+    }
+  }
+
   // --- COMPRA ---
   getShoppingList() {
     const list = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
@@ -186,6 +312,7 @@ class AppDatabase {
 
   saveShoppingList(list) {
     localStorage.setItem('qr_menu_shopping', JSON.stringify(list));
+    this.pushCloudSync();
   }
 
   addShoppingItem(item) {
@@ -346,6 +473,7 @@ class AppDatabase {
     };
     products.push(newProd);
     localStorage.setItem('qr_menu_products', JSON.stringify(products));
+    this.pushCloudSync();
     return newProd;
   }
 
@@ -385,6 +513,7 @@ class AppDatabase {
         localStorage.setItem('qr_menu_recipes', JSON.stringify(recipes));
       }
 
+      this.pushCloudSync();
       return products[index];
     }
     return null;
@@ -393,6 +522,7 @@ class AppDatabase {
   deleteProduct(id) {
     const products = this.getProducts().filter(p => p.id !== id);
     localStorage.setItem('qr_menu_products', JSON.stringify(products));
+    this.pushCloudSync();
     return products;
   }
 
@@ -464,12 +594,14 @@ class AppDatabase {
     localStorage.setItem('qr_menu_recipes', JSON.stringify(recipes));
     const addedCount = this.ensureProductsExist(newR.ingredients);
     newR.auto_added_products_count = addedCount;
+    this.pushCloudSync();
     return newR;
   }
 
   deleteRecipe(id) {
     const recipes = this.getRecipes().filter(r => r.id !== id);
     localStorage.setItem('qr_menu_recipes', JSON.stringify(recipes));
+    this.pushCloudSync();
     return recipes;
   }
 
@@ -489,6 +621,7 @@ class AppDatabase {
       localStorage.setItem('qr_menu_recipes', JSON.stringify(recipes));
       const addedCount = this.ensureProductsExist(recipes[index].ingredients);
       recipes[index].auto_added_products_count = addedCount;
+      this.pushCloudSync();
       return recipes[index];
     }
     return null;
@@ -501,6 +634,7 @@ class AppDatabase {
 
   saveWeeklyMenu(menu) {
     localStorage.setItem('qr_menu_weekly', JSON.stringify(menu));
+    this.pushCloudSync();
   }
 
   updateMeal(dayIndex, mealType, recipeId, recipeTitle) {
