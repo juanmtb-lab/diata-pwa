@@ -723,13 +723,13 @@
         <div class="border-t border-slate-800 pt-3 space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-slate-300">Ingredientes vinculados:</span>
-            <button type="button" onclick="appUi.addIngredientRowToForm()" class="px-2 py-1 rounded bg-slate-800 text-[11px] font-semibold text-brand-400 hover:bg-slate-700 flex items-center gap-1">
-              <i data-lucide="plus" class="w-3 h-3"></i> Añadir Ingrediente
+            <button type="button" onclick="appUi.openIngredientPopup()" class="px-3 py-1.5 rounded-xl bg-brand-600/30 border border-brand-500/40 text-xs font-bold text-brand-300 hover:bg-brand-600/50 flex items-center gap-1.5 shadow-md transition">
+              <i data-lucide="plus-circle" class="w-4 h-4 text-brand-400"></i> Seleccionar Ingrediente
             </button>
           </div>
 
           <div id="recipe-ingredients-rows" class="space-y-2">
-            <!-- Filas dinámicas de ingredientes -->
+            <!-- Tarjetas de ingredientes agregados dinámicamente -->
           </div>
         </div>
 
@@ -740,6 +740,99 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL POPUP: SELECCIONAR / CREAR INGREDIENTE PARA RECETA -->
+  <div id="modal-select-ingredient-popup" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-2xl border border-slate-700 p-5 space-y-4 shadow-2xl max-h-[90vh] flex flex-col my-auto">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white light:text-slate-900 flex items-center gap-2" id="pop-ing-title">
+          <i data-lucide="salad" class="w-5 h-5 text-brand-400"></i> Seleccionar Ingrediente
+        </h3>
+        <button type="button" onclick="appUi.closeIngredientPopup()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="pop-ing-edit-index" value="-1" />
+
+      <!-- Buscador en el catálogo -->
+      <div class="space-y-1.5">
+        <label class="block text-xs font-semibold text-slate-300">Buscar en el Catálogo de Alimentos:</label>
+        <div class="relative">
+          <input type="text" id="pop-ing-search" oninput="appUi.filterIngredientPopupList()" placeholder="Escribe para buscar (ej: Pollo, Tomate, Huevo)..."
+            class="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900 focus:outline-none focus:border-brand-500 placeholder-slate-500" />
+          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
+        </div>
+      </div>
+
+      <!-- Lista desplegable de opciones del catálogo -->
+      <div id="pop-ing-catalog-list" class="max-h-36 overflow-y-auto space-y-1 p-1 bg-slate-900/80 rounded-xl border border-slate-800 no-scrollbar">
+        <!-- Renderizado dinámico desde JS -->
+      </div>
+
+      <!-- Formulario de detalles del ingrediente seleccionado -->
+      <div class="glass-card p-3 rounded-xl border border-slate-800 space-y-2.5 bg-slate-950/40">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Nombre del alimento:</label>
+          <input type="text" id="pop-ing-selected-name" placeholder="Selecciona de la lista arriba o escribe uno nuevo..." required
+            class="w-full px-3 py-2 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white font-bold light:text-slate-900 focus:outline-none focus:border-brand-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Categoría:</label>
+            <select id="pop-ing-selected-category" class="w-full px-2.5 py-2 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900">
+              <option value="Frescos">🥬 Frescos</option>
+              <option value="Despensa">🥫 Despensa</option>
+              <option value="Congelados">❄️ Congelados</option>
+              <option value="Especias">🌿 Especias</option>
+              <option value="Salsas">🥫 Salsas</option>
+              <option value="Baño">🛁 Baño</option>
+              <option value="Limpieza">🧹 Limpieza del Hogar</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Unidad:</label>
+            <select id="pop-ing-selected-unit" class="w-full px-2.5 py-2 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900">
+              <option value="uds">uds (unidades)</option>
+              <option value="kg">kg (kilos)</option>
+              <option value="g">g (gramos)</option>
+              <option value="l">l (litros)</option>
+              <option value="ml">ml (mililitros)</option>
+              <option value="docena">docena</option>
+              <option value="bolsa">bolsa</option>
+              <option value="paquete">paquete</option>
+              <option value="bote">bote</option>
+              <option value="lata">lata</option>
+              <option value="latas">latas</option>
+              <option value="dientes">dientes</option>
+              <option value="pizca">pizca</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Cantidad necesaria:</label>
+          <div class="flex items-center gap-1.5">
+            <input type="text" id="pop-ing-selected-qty" value="1" placeholder="Ej: 1, 1/2, 0.5, 2..."
+              class="flex-1 px-3 py-1.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-center text-white font-bold light:text-slate-900" />
+            <button type="button" onclick="document.getElementById('pop-ing-selected-qty').value='1/2'" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-300">1/2</button>
+            <button type="button" onclick="document.getElementById('pop-ing-selected-qty').value='1'" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-300">1</button>
+            <button type="button" onclick="document.getElementById('pop-ing-selected-qty').value='2'" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-300">2</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <button type="button" onclick="appUi.closeIngredientPopup()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">Cancelar</button>
+        <button type="button" onclick="appUi.saveIngredientFromPopup()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 flex items-center gap-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i> Guardar en Receta
+        </button>
+      </div>
     </div>
   </div>
 
@@ -859,14 +952,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=106"></script>
-  <script src="app.js?v=106"></script>
+  <script src="db.js?v=107"></script>
+  <script src="app.js?v=107"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v106')) caches.delete(key);
+          if (!key.includes('v107')) caches.delete(key);
         });
       });
     }

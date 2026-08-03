@@ -88,6 +88,7 @@ class AppUI {
     this.activeCategoryFilter = 'all';
     this.catalogSortMode = 'alpha'; // 'alpha' o 'usage'
     this.assignTarget = null; // { dayIndex, mealType }
+    this.currentRecipeIngredients = [];
     this.initEvents();
   }
 
@@ -186,57 +187,8 @@ class AppUI {
         const prepTimeInput = document.getElementById('new-recipe-preptime');
         const favChk = document.getElementById('new-recipe-favorite');
 
-        // Extraer ingredientes de las filas
-        const ingRows = document.querySelectorAll('#recipe-ingredients-rows .ingredient-row');
-        const ingredients = [];
-        ingRows.forEach(row => {
-          const selectEl = row.querySelector('.ing-select');
-          const customNameEl = row.querySelector('.ing-custom-name');
-          const qtyEl = row.querySelector('.ing-qty');
-          const unitEl = row.querySelector('.ing-unit');
-
-          let ingName = '';
-          let ingCategory = 'Frescos';
-
-          if (selectEl) {
-            const val = selectEl.value;
-            if (val === '__NEW__') {
-              ingName = customNameEl ? customNameEl.value.trim() : '';
-              const catEl = row.querySelector('.ing-category');
-              if (catEl) ingCategory = catEl.value;
-            } else if (val) {
-              const opt = selectEl.options[selectEl.selectedIndex];
-              ingName = opt ? (opt.dataset.name || '').trim() : '';
-              ingCategory = opt ? (opt.dataset.cat || 'Frescos') : 'Frescos';
-            }
-          }
-
-          // Fallback en caso de ingresar directamente en customNameEl
-          if (!ingName && customNameEl && customNameEl.value.trim()) {
-            ingName = customNameEl.value.trim();
-          }
-
-          if (ingName) {
-            const rawUnit = unitEl ? unitEl.value : 'uds';
-            const parsed = parseQuantityAndUnit(qtyEl ? qtyEl.value : 1, rawUnit);
-
-            let finalUnit = rawUnit;
-            if (unitEl && parsed.unit) {
-              const opts = Array.from(unitEl.options).map(o => o.value);
-              if (opts.includes(parsed.unit)) {
-                finalUnit = parsed.unit;
-                unitEl.value = parsed.unit;
-              }
-            }
-
-            ingredients.push({
-              name: ingName,
-              quantity: parsed.quantity,
-              unit: finalUnit,
-              category: ingCategory
-            });
-          }
-        });
+        // Extraer ingredientes de la lista en memoria
+        const ingredients = this.currentRecipeIngredients || [];
 
         if (titleInput && titleInput.value.trim()) {
           const recipeData = {
@@ -1245,17 +1197,14 @@ class AppUI {
     const mealTargetSelect = document.getElementById('new-recipe-mealtarget');
     const ingRowsContainer = document.getElementById('recipe-ingredients-rows');
 
+    this.currentRecipeIngredients = [];
+
     if (editIdInput) editIdInput.value = '';
     if (titleHeader) titleHeader.innerHTML = `<i data-lucide="chef-hat" class="w-5 h-5 text-accent-400"></i> Nueva Comida / Receta`;
     if (form) form.reset();
     if (mealTargetSelect) mealTargetSelect.value = 'both';
 
-    if (ingRowsContainer) {
-      ingRowsContainer.innerHTML = '';
-      // Añadir 2 filas por defecto
-      this.addIngredientRowToForm();
-      this.addIngredientRowToForm();
-    }
+    this.renderRecipeIngredientsCards();
 
     if (modal) {
       modal.classList.remove('hidden');
@@ -1277,7 +1226,6 @@ class AppUI {
     const mealTargetSelect = document.getElementById('new-recipe-mealtarget');
     const prepTimeInput = document.getElementById('new-recipe-preptime');
     const favChk = document.getElementById('new-recipe-favorite');
-    const ingRowsContainer = document.getElementById('recipe-ingredients-rows');
 
     if (editIdInput) editIdInput.value = recipe.id;
     if (titleHeader) titleHeader.innerHTML = `<i data-lucide="chef-hat" class="w-5 h-5 text-accent-400"></i> Editar Receta / Comida`;
@@ -1287,16 +1235,8 @@ class AppUI {
     if (prepTimeInput) prepTimeInput.value = recipe.prep_time || 20;
     if (favChk) favChk.checked = !!recipe.is_favorite;
 
-    if (ingRowsContainer) {
-      ingRowsContainer.innerHTML = '';
-      if (recipe.ingredients && recipe.ingredients.length > 0) {
-        recipe.ingredients.forEach(ing => {
-          this.addIngredientRowToForm(ing.name, ing.quantity, ing.unit, ing.category || 'Frescos');
-        });
-      } else {
-        this.addIngredientRowToForm();
-      }
-    }
+    this.currentRecipeIngredients = recipe.ingredients ? JSON.parse(JSON.stringify(recipe.ingredients)) : [];
+    this.renderRecipeIngredientsCards();
 
     if (modal) {
       modal.classList.remove('hidden');
@@ -1313,100 +1253,209 @@ class AppUI {
     }
   }
 
-  addIngredientRowToForm(name = '', qty = 1, unit = 'uds', category = 'Frescos') {
+  // --- SUB-MODAL POPUP DE INGREDIENTES PARA RECETAS ---
+  openIngredientPopup(editIndex = -1) {
+    const popup = document.getElementById('modal-select-ingredient-popup');
+    const titleEl = document.getElementById('pop-ing-title');
+    const indexInput = document.getElementById('pop-ing-edit-index');
+    const searchInput = document.getElementById('pop-ing-search');
+    const nameInput = document.getElementById('pop-ing-selected-name');
+    const catSelect = document.getElementById('pop-ing-selected-category');
+    const unitSelect = document.getElementById('pop-ing-selected-unit');
+    const qtyInput = document.getElementById('pop-ing-selected-qty');
+
+    if (indexInput) indexInput.value = editIndex;
+    if (searchInput) searchInput.value = '';
+
+    if (nameInput) delete nameInput.dataset.manualSelect;
+
+    if (editIndex >= 0 && this.currentRecipeIngredients && this.currentRecipeIngredients[editIndex]) {
+      const ing = this.currentRecipeIngredients[editIndex];
+      if (titleEl) titleEl.innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-brand-400"></i> Editar Ingrediente`;
+      if (nameInput) nameInput.value = ing.name || '';
+      if (catSelect) catSelect.value = ing.category || 'Frescos';
+      if (unitSelect) unitSelect.value = ing.unit || 'uds';
+      if (qtyInput) qtyInput.value = ing.quantity || 1;
+    } else {
+      if (titleEl) titleEl.innerHTML = `<i data-lucide="salad" class="w-5 h-5 text-brand-400"></i> Seleccionar Ingrediente`;
+      if (nameInput) nameInput.value = '';
+      if (catSelect) catSelect.value = 'Frescos';
+      if (unitSelect) unitSelect.value = 'uds';
+      if (qtyInput) qtyInput.value = '1';
+    }
+
+    this.filterIngredientPopupList();
+
+    if (popup) {
+      popup.classList.remove('hidden');
+      popup.classList.add('flex');
+    }
+    if (window.lucide) lucide.createIcons();
+    if (searchInput) searchInput.focus();
+  }
+
+  closeIngredientPopup() {
+    const popup = document.getElementById('modal-select-ingredient-popup');
+    if (popup) {
+      popup.classList.add('hidden');
+      popup.classList.remove('flex');
+    }
+  }
+
+  filterIngredientPopupList() {
+    const searchInput = document.getElementById('pop-ing-search');
+    const listContainer = document.getElementById('pop-ing-catalog-list');
+    const nameInput = document.getElementById('pop-ing-selected-name');
+    if (!listContainer) return;
+
+    const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const products = appDb.getProducts('alpha');
+
+    // Auto-rellenar nombre si el usuario está escribiendo una búsqueda nueva y no ha hecho clic
+    if (term && nameInput && (!nameInput.dataset.manualSelect || nameInput.dataset.manualSelect === 'false')) {
+      nameInput.value = searchInput.value;
+    }
+
+    const filtered = term
+      ? products.filter(p => p.name.toLowerCase().includes(term) || (p.category || '').toLowerCase().includes(term))
+      : products;
+
+    if (filtered.length === 0) {
+      listContainer.innerHTML = `
+        <div class="p-2 text-center text-xs text-amber-300">
+          ✨ "${term}" no está en el catálogo. Se creará automáticamente.
+        </div>
+      `;
+      return;
+    }
+
+    const catEmoji = {
+      Frescos: '🥬',
+      Despensa: '🥫',
+      Congelados: '❄️',
+      Especias: '🌿',
+      Salsas: '🥫',
+      Baño: '🛁',
+      Limpieza: '🧹'
+    };
+
+    listContainer.innerHTML = filtered.map(p => `
+      <div onclick="appUi.selectIngredientFromPopupList('${p.name.replace(/'/g, "\\'")}', '${p.category}', '${p.unit || p.default_unit || 'uds'}')"
+        class="p-2 rounded-lg bg-slate-900/90 hover:bg-brand-600/20 border border-slate-800 hover:border-brand-500/50 cursor-pointer flex items-center justify-between transition group">
+        <div class="flex items-center gap-2">
+          <span class="text-xs">${catEmoji[p.category] || '📦'}</span>
+          <span class="text-xs font-bold text-white group-hover:text-brand-300">${p.name}</span>
+          <span class="text-[10px] text-slate-400">(${p.category})</span>
+        </div>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">${p.unit || p.default_unit || 'uds'}</span>
+      </div>
+    `).join('');
+  }
+
+  selectIngredientFromPopupList(name, category, unit) {
+    const nameInput = document.getElementById('pop-ing-selected-name');
+    const catSelect = document.getElementById('pop-ing-selected-category');
+    const unitSelect = document.getElementById('pop-ing-selected-unit');
+
+    if (nameInput) {
+      nameInput.value = name;
+      nameInput.dataset.manualSelect = 'true';
+    }
+    if (catSelect) catSelect.value = category || 'Frescos';
+    if (unitSelect) unitSelect.value = unit || 'uds';
+  }
+
+  saveIngredientFromPopup() {
+    const indexInput = document.getElementById('pop-ing-edit-index');
+    const nameInput = document.getElementById('pop-ing-selected-name');
+    const catSelect = document.getElementById('pop-ing-selected-category');
+    const unitSelect = document.getElementById('pop-ing-selected-unit');
+    const qtyInput = document.getElementById('pop-ing-selected-qty');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+      alert('Por favor introduce o selecciona el nombre del ingrediente.');
+      return;
+    }
+
+    const category = catSelect ? catSelect.value : 'Frescos';
+    const rawUnit = unitSelect ? unitSelect.value : 'uds';
+    const rawQty = qtyInput ? qtyInput.value : '1';
+
+    const parsed = parseQuantityAndUnit(rawQty, rawUnit);
+
+    const ingObj = {
+      name: name,
+      category: category,
+      quantity: parsed.quantity,
+      unit: parsed.unit || rawUnit
+    };
+
+    const editIdx = parseInt(indexInput ? indexInput.value : '-1');
+    if (!this.currentRecipeIngredients) this.currentRecipeIngredients = [];
+
+    if (editIdx >= 0 && editIdx < this.currentRecipeIngredients.length) {
+      this.currentRecipeIngredients[editIdx] = ingObj;
+    } else {
+      this.currentRecipeIngredients.push(ingObj);
+    }
+
+    this.renderRecipeIngredientsCards();
+    this.closeIngredientPopup();
+  }
+
+  removeRecipeIngredient(index) {
+    if (!this.currentRecipeIngredients) return;
+    this.currentRecipeIngredients.splice(index, 1);
+    this.renderRecipeIngredientsCards();
+  }
+
+  renderRecipeIngredientsCards() {
     const container = document.getElementById('recipe-ingredients-rows');
     if (!container) return;
 
-    const sortMode = this.catalogSortMode || 'alpha';
-    const products = appDb.getProducts(sortMode);
-    const cleanName = name ? name.trim() : '';
-
-    // Buscar si el nombre coincide con un producto existente en el catálogo
-    let matchedProduct = null;
-    if (cleanName) {
-      matchedProduct = products.find(p => p.name.toLowerCase() === cleanName.toLowerCase());
+    if (!this.currentRecipeIngredients || this.currentRecipeIngredients.length === 0) {
+      container.innerHTML = `
+        <div class="p-3 text-center rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 text-xs">
+          <span>Aún no has añadido ingredientes. Haz clic arriba en <strong>"+ Seleccionar Ingrediente"</strong>.</span>
+        </div>
+      `;
+      return;
     }
 
-    const isCustom = cleanName !== '' && !matchedProduct;
-    const activeCategory = matchedProduct ? (matchedProduct.category || 'Frescos') : (category || 'Frescos');
+    const catEmoji = {
+      Frescos: '🥬',
+      Despensa: '🥫',
+      Congelados: '❄️',
+      Especias: '🌿',
+      Salsas: '🥫',
+      Baño: '🛁',
+      Limpieza: '🧹'
+    };
 
-    const row = document.createElement('div');
-    row.className = 'ingredient-row space-y-1.5 p-2.5 rounded-xl bg-slate-900/40 border border-slate-800';
+    container.innerHTML = this.currentRecipeIngredients.map((ing, idx) => `
+      <div class="glass-card p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2 bg-slate-900/60">
+        <div class="flex items-center gap-2">
+          <span class="text-sm">${catEmoji[ing.category] || '📦'}</span>
+          <div>
+            <span class="text-xs font-bold text-white light:text-slate-900">${ing.name}</span>
+            <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+              <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">${ing.quantity} ${ing.unit}</span>
+              <span>• ${ing.category}</span>
+            </div>
+          </div>
+        </div>
 
-    // Opciones del selector de productos del catálogo
-    const productOptions = products.map(p => {
-      const selected = matchedProduct && matchedProduct.id === p.id ? 'selected' : '';
-      const usageTag = p.usage_count > 0 ? ` 🔥(${p.usage_count})` : '';
-      return `<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit || p.default_unit || 'uds'}" data-cat="${p.category}" ${selected}>${p.name} (${p.category})${usageTag}</option>`;
-    }).join('');
-
-    const newOptionSelected = isCustom ? 'selected' : '';
-
-    row.innerHTML = `
-      <div class="flex items-center gap-2">
-        <select class="ing-select flex-1 px-3 py-1.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-white light:text-slate-900 focus:border-brand-500">
-          <option value="">-- Seleccionar alimento de mi catálogo --</option>
-          ${productOptions}
-          <option value="__NEW__" ${newOptionSelected}>➕ Escribir alimento nuevo...</option>
-        </select>
-        <input type="text" value="${qty}" placeholder="Cant."
-          class="ing-qty w-16 px-2 py-1.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-xs text-center font-bold text-white light:text-slate-900" />
-        <select class="ing-unit px-2 py-1.5 rounded-xl bg-slate-900 light:bg-white border border-slate-700 text-[11px] text-white light:text-slate-900">
-          <option value="uds" ${unit === 'uds' ? 'selected' : ''}>uds</option>
-          <option value="kg" ${unit === 'kg' ? 'selected' : ''}>kg</option>
-          <option value="g" ${unit === 'g' ? 'selected' : ''}>g</option>
-          <option value="l" ${unit === 'l' ? 'selected' : ''}>l</option>
-          <option value="ml" ${unit === 'ml' ? 'selected' : ''}>ml</option>
-          <option value="docena" ${unit === 'docena' ? 'selected' : ''}>docena</option>
-          <option value="bolsa" ${unit === 'bolsa' ? 'selected' : ''}>bolsa</option>
-          <option value="paquete" ${unit === 'paquete' ? 'selected' : ''}>paquete</option>
-          <option value="dientes" ${unit === 'dientes' ? 'selected' : ''}>dientes</option>
-          <option value="pizca" ${unit === 'pizca' ? 'selected' : ''}>pizca</option>
-          <option value="lata" ${unit === 'lata' ? 'selected' : ''}>lata</option>
-          <option value="latas" ${unit === 'latas' ? 'selected' : ''}>latas</option>
-        </select>
-        <button type="button" onclick="this.closest('.ingredient-row').remove()" class="p-1 text-slate-400 hover:text-rose-400">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
+        <div class="flex items-center gap-1">
+          <button type="button" onclick="appUi.openIngredientPopup(${idx})" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            <i data-lucide="edit-2" class="w-3.5 h-3.5 text-brand-400"></i>
+          </button>
+          <button type="button" onclick="appUi.removeRecipeIngredient(${idx})" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-400 transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-400"></i>
+          </button>
+        </div>
       </div>
-
-      <div class="ing-custom-container flex flex-col sm:flex-row items-center gap-2 ${isCustom ? '' : 'hidden'}">
-        <input type="text" placeholder="Escribe el nombre del alimento nuevo..." value="${isCustom ? cleanName : ''}"
-          class="ing-custom-name flex-1 w-full px-3 py-1.5 rounded-xl bg-slate-900 light:bg-white border border-amber-500/50 text-xs text-white light:text-slate-900 placeholder-amber-400/60" />
-        <select class="ing-category px-3 py-1.5 rounded-xl bg-slate-900 light:bg-white border border-amber-500/50 text-xs text-amber-300 light:text-slate-900 font-medium">
-          <option value="Frescos" ${activeCategory === 'Frescos' ? 'selected' : ''}>🥬 Frescos</option>
-          <option value="Despensa" ${activeCategory === 'Despensa' ? 'selected' : ''}>🥫 Despensa</option>
-          <option value="Congelados" ${activeCategory === 'Congelados' ? 'selected' : ''}>❄️ Congelados</option>
-          <option value="Especias" ${activeCategory === 'Especias' ? 'selected' : ''}>🌿 Especias</option>
-          <option value="Salsas" ${activeCategory === 'Salsas' ? 'selected' : ''}>🥫 Salsas</option>
-          <option value="Baño" ${activeCategory === 'Baño' ? 'selected' : ''}>🛁 Baño</option>
-          <option value="Limpieza" ${activeCategory === 'Limpieza' ? 'selected' : ''}>🧹 Limpieza del Hogar</option>
-        </select>
-      </div>
-    `;
-
-    container.appendChild(row);
-
-    const selectEl = row.querySelector('.ing-select');
-    const customContainerEl = row.querySelector('.ing-custom-container');
-    const customNameEl = row.querySelector('.ing-custom-name');
-    const unitEl = row.querySelector('.ing-unit');
-
-    selectEl.addEventListener('change', (e) => {
-      const val = e.target.value;
-      if (val === '__NEW__') {
-        customContainerEl.classList.remove('hidden');
-        customNameEl.focus();
-      } else {
-        customContainerEl.classList.add('hidden');
-        customNameEl.value = '';
-        if (val) {
-          const opt = e.target.options[e.target.selectedIndex];
-          const autoUnit = opt ? (opt.dataset.unit || 'uds') : 'uds';
-          if (unitEl) unitEl.value = autoUnit;
-        }
-      }
-    });
+    `).join('');
 
     if (window.lucide) lucide.createIcons();
   }
