@@ -15,7 +15,7 @@ const DEFAULT_PRODUCTS = [
   { id: 'p10', name: 'Huevos camperos', category: 'Frescos', unit: 'docena', is_essential: true },
   { id: 'p11', name: 'Leche entera', category: 'Despensa', unit: 'l', is_essential: true },
   { id: 'p12', name: 'Lechuga', category: 'Frescos', unit: 'uds', is_essential: false },
-  { id: 'p13', name: 'Mayonesa', category: 'Salsas', unit: 'bote', is_essential: false },
+  { id: 'p13', name: 'Mayonesa', category: 'Despensa', unit: 'bote', is_essential: false },
   { id: 'p14', name: 'Nueces', category: 'Despensa', unit: 'g', is_essential: false },
   { id: 'p15', name: 'Orégano seco', category: 'Especias', unit: 'bote', is_essential: false },
   { id: 'p16', name: 'Pasta Penne', category: 'Despensa', unit: 'paquete', is_essential: true },
@@ -28,9 +28,9 @@ const DEFAULT_PRODUCTS = [
   { id: 'p23', name: 'Queso Havarti', category: 'Frescos', unit: 'uds', is_essential: false },
   { id: 'p24', name: 'Queso Parmegiano', category: 'Frescos', unit: 'g', is_essential: false },
   { id: 'p25', name: 'Salmón congelado', category: 'Congelados', unit: 'uds', is_essential: false },
-  { id: 'p26', name: 'Salsa de Soja', category: 'Salsas', unit: 'bote', is_essential: false },
+  { id: 'p26', name: 'Salsa de Soja', category: 'Despensa', unit: 'bote', is_essential: false },
   { id: 'p27', name: 'Tacos de Maíz', category: 'Despensa', unit: 'paquete', is_essential: false },
-  { id: 'p28', name: 'Tomate frito', category: 'Salsas', unit: 'bote', is_essential: true },
+  { id: 'p28', name: 'Tomate frito', category: 'Despensa', unit: 'bote', is_essential: true },
   { id: 'p29', name: 'Tomates ensalada', category: 'Frescos', unit: 'kg', is_essential: false },
   { id: 'p30', name: 'Vasitos Arroz', category: 'Frescos', unit: 'uds', is_essential: false },
   { id: 'p31', name: 'Vasitos quinoa', category: 'Frescos', unit: 'uds', is_essential: false },
@@ -210,11 +210,12 @@ class AppDatabase {
       }));
     }
 
-    // Migración automática de la categoría Baño a Aseo Personal
-    ['qr_menu_products', 'qr_menu_recipes', 'qr_menu_shopping'].forEach(key => {
+    // Migración automática de categorías obsoletas (Baño -> Aseo Personal, Salsas en productos/compras -> Despensa)
+    ['qr_menu_products', 'qr_menu_shopping'].forEach(key => {
       let raw = localStorage.getItem(key);
-      if (raw && raw.includes('Baño')) {
+      if (raw && (raw.includes('Baño') || raw.includes('Salsas'))) {
         raw = raw.replace(/"category"\s*:\s*"Baño"/g, '"category":"Aseo Personal"');
+        raw = raw.replace(/"category"\s*:\s*"Salsas"/g, '"category":"Despensa"');
         localStorage.setItem(key, raw);
       }
     });

@@ -539,7 +539,6 @@ class AppUI {
       Despensa: list.filter(i => i.category === 'Despensa' && i.status !== 'bought').length,
       Congelados: list.filter(i => i.category === 'Congelados' && i.status !== 'bought').length,
       Especias: list.filter(i => i.category === 'Especias' && i.status !== 'bought').length,
-      Salsas: list.filter(i => i.category === 'Salsas' && i.status !== 'bought').length,
       'Aseo Personal': list.filter(i => i.category === 'Aseo Personal' && i.status !== 'bought').length,
       Limpieza: list.filter(i => i.category === 'Limpieza' && i.status !== 'bought').length
     };

@@ -269,7 +269,6 @@
               <option value="Despensa">🥫 Despensa</option>
               <option value="Congelados">❄️ Congelados</option>
               <option value="Especias">🌿 Especias</option>
-              <option value="Salsas">🥫 Salsas</option>
               <option value="Aseo Personal">🧼 Aseo Personal</option>
               <option value="Limpieza">🧹 Limpieza del Hogar</option>
             </select>
@@ -310,9 +309,6 @@
         </button>
         <button onclick="appUi.filterCategory('Especias')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
           🌿 Especias (<span id="cat-count-Especias">0</span>)
-        </button>
-        <button onclick="appUi.filterCategory('Salsas')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
-          🥫 Salsas (<span id="cat-count-Salsas">0</span>)
         </button>
         <button onclick="appUi.filterCategory('Aseo Personal')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-800 text-slate-300 hover:bg-slate-700">
           🧼 Aseo Personal (<span id="cat-count-Aseo Personal">0</span>)
@@ -973,14 +969,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=113"></script>
-  <script src="app.js?v=113"></script>
+  <script src="db.js?v=114"></script>
+  <script src="app.js?v=114"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v113')) caches.delete(key);
+          if (!key.includes('v114')) caches.delete(key);
         });
       });
     }
