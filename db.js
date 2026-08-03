@@ -44,6 +44,35 @@ const DEFAULT_PRODUCTS = [
 const DEFAULT_RECIPES = [
   {
     id: 'r1',
+    title: 'Arroz con Salteado de Verduras',
+    category: 'Vegetariano',
+    prep_time: 30,
+    is_favorite: false,
+    meal_target: 'lunch',
+    ingredients: [
+      { name: 'Guisantes congelados', category: 'Congelados', quantity: 0.2, unit: 'kg' },
+      { name: 'Vasitos Arroz', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Pimiento Verde', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Pimiento Rojo', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Cebolla', category: 'Frescos', quantity: 1, unit: 'kg' }
+    ]
+  },
+  {
+    id: 'r2',
+    title: 'Macarrones con Atún',
+    category: 'Pasta',
+    prep_time: 20,
+    is_favorite: false,
+    meal_target: 'lunch',
+    ingredients: [
+      { name: 'Pasta Penne', category: 'Despensa', quantity: 1, unit: 'paquete' },
+      { name: 'Tomate frito', category: 'Salsas', quantity: 1, unit: 'bote' },
+      { name: 'Orégano seco', category: 'Especias', quantity: 1, unit: 'pizca' },
+      { name: 'Atún', category: 'Despensa', quantity: 1, unit: 'lata' }
+    ]
+  },
+  {
+    id: 'r3',
     title: 'Pollo a la Plancha con Ensalada',
     category: 'Saludable',
     prep_time: 20,
@@ -51,97 +80,64 @@ const DEFAULT_RECIPES = [
     meal_target: 'lunch',
     ingredients: [
       { name: 'Pechuga de pollo', category: 'Frescos', quantity: 0.5, unit: 'kg' },
-      { name: 'Tomates ensalada', category: 'Frescos', quantity: 2, unit: 'uds' },
-      { name: 'Espinacas frescas', category: 'Frescos', quantity: 1, unit: 'bolsa' }
-    ]
-  },
-  {
-    id: 'r2',
-    title: 'Salmón al Horno con Guisantes',
-    category: 'Pescado',
-    prep_time: 25,
-    is_favorite: true,
-    meal_target: 'dinner',
-    ingredients: [
-      { name: 'Salmón congelado', category: 'Congelados', quantity: 2, unit: 'paquete' },
-      { name: 'Guisantes congelados', category: 'Congelados', quantity: 0.3, unit: 'kg' },
-      { name: 'Ajo', category: 'Frescos', quantity: 2, unit: 'dientes' }
-    ]
-  },
-  {
-    id: 'r3',
-    title: 'Pasta Penne con Tomate y Orégano',
-    category: 'Pasta',
-    prep_time: 15,
-    is_favorite: false,
-    meal_target: 'lunch',
-    ingredients: [
-      { name: 'Pasta Penne', category: 'Despensa', quantity: 1, unit: 'paquete' },
-      { name: 'Tomates ensalada', category: 'Frescos', quantity: 3, unit: 'uds' },
-      { name: 'Orégano seco', category: 'Especias', quantity: 1, unit: 'pizca' }
+      { name: 'Lechuga', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Cebolla', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Pepino', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Nueces', category: 'Despensa', quantity: 1, unit: 'g' },
+      { name: 'Queso Parmegiano', category: 'Frescos', quantity: 1, unit: 'g' }
     ]
   },
   {
     id: 'r4',
-    title: 'Tortilla de Patatas con Ensalada',
-    category: 'Hogar',
-    prep_time: 30,
+    title: 'Salmón al Horno con Quinoa y Verduras',
+    category: 'Pescado',
+    prep_time: 35,
     is_favorite: true,
-    meal_target: 'dinner',
+    meal_target: 'lunch',
     ingredients: [
-      { name: 'Huevos camperos', category: 'Frescos', quantity: 6, unit: 'uds' },
-      { name: 'Cebolla', category: 'Frescos', quantity: 1, unit: 'kg' },
-      { name: 'Aceite de Oliva VV', category: 'Despensa', quantity: 0.2, unit: 'l' }
+      { name: 'Salmón congelado', category: 'Congelados', quantity: 1, unit: 'paquete' },
+      { name: 'Vasitos quinoa', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Pimiento Rojo', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Pimiento Verde', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Cebolla', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Salsa de Soja', category: 'Salsas', quantity: 1, unit: 'pizca' }
     ]
   },
   {
     id: 'r5',
-    title: 'Arroz Integral con Salteado de Verduras',
-    category: 'Vegetariano',
-    prep_time: 30,
+    title: 'Tacos al Horno',
+    category: 'Saludable',
+    prep_time: 25,
     is_favorite: false,
     meal_target: 'both',
     ingredients: [
-      { name: 'Arroz integral', category: 'Despensa', quantity: 0.3, unit: 'kg' },
-      { name: 'Espinacas frescas', category: 'Frescos', quantity: 1, unit: 'bolsa' },
-      { name: 'Guisantes congelados', category: 'Congelados', quantity: 0.2, unit: 'kg' }
+      { name: 'Aguacate', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Cebolla', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Pechuga de pollo', category: 'Frescos', quantity: 1, unit: 'paquete' },
+      { name: 'Pimiento Rojo', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Pimiento Verde', category: 'Frescos', quantity: 1, unit: 'uds' },
+      { name: 'Tacos de Maíz', category: 'Despensa', quantity: 1, unit: 'paquete' }
     ]
   },
   {
     id: 'r6',
-    title: 'Salsa Boloñesa Casera',
-    category: 'Salsas',
-    prep_time: 35,
-    is_favorite: true,
-    meal_target: 'both',
-    ingredients: [
-      { name: 'Carne picada de ternera', category: 'Frescos', quantity: 0.4, unit: 'kg' },
-      { name: 'Tomate frito', category: 'Salsas', quantity: 1, unit: 'bote' },
-      { name: 'Cebolla', category: 'Frescos', quantity: 1, unit: 'uds' },
-      { name: 'Ajo', category: 'Frescos', quantity: 2, unit: 'dientes' },
-      { name: 'Orégano seco', category: 'Especias', quantity: 1, unit: 'pizca' }
-    ]
-  },
-  {
-    id: 'r7',
-    title: 'Salsa Pesto de Albahaca Casera',
-    category: 'Salsas',
+    title: 'Tortilla con Atún y Queso',
+    category: 'Rápida',
     prep_time: 10,
     is_favorite: true,
-    meal_target: 'both',
+    meal_target: 'dinner',
     ingredients: [
-      { name: 'Albahaca fresca', category: 'Frescos', quantity: 1, unit: 'bolsa' },
-      { name: 'Aceite de Oliva VV', category: 'Despensa', quantity: 0.1, unit: 'l' },
-      { name: 'Queso Parmesano', category: 'Frescos', quantity: 0.1, unit: 'kg' },
-      { name: 'Ajo', category: 'Frescos', quantity: 1, unit: 'dientes' }
+      { name: 'Huevos camperos', category: 'Frescos', quantity: 4, unit: 'uds' },
+      { name: 'Atún', category: 'Despensa', quantity: 1, unit: 'lata' },
+      { name: 'Aceite de Oliva VV', category: 'Despensa', quantity: 0.2, unit: 'l' },
+      { name: 'Queso Havarti', category: 'Frescos', quantity: 1, unit: 'uds' }
     ]
   }
 ];
 
 const INITIAL_SHOPPING_LIST = [
   { id: 's1', name: 'Leche entera', category: 'Despensa', quantity: 2, unit: 'l', status: 'pending', added_from_menu: false },
-  { id: 's2', name: 'Huevos camperos', category: 'Frescos', quantity: 1, unit: 'docena', status: 'low_stock', added_from_menu: false },
-  { id: 's3', name: 'Espinacas frescas', category: 'Frescos', quantity: 1, unit: 'bolsa', status: 'bought', added_from_menu: true }
+  { id: 's2', name: 'Huevos camperos', category: 'Frescos', quantity: 1, unit: 'docena', status: 'low_stock', added_from_menu: false }
 ];
 
 const DAYS_OF_WEEK = [
@@ -158,12 +154,13 @@ function generateInitialMenu() {
   return DAYS_OF_WEEK.map(d => ({
     day_index: d.index,
     day_name: d.name,
-    lunch: d.index === 1 ? { recipe_id: 'r1', title: 'Pollo a la Plancha con Ensalada', completed: false, locked: true } :
-           d.index === 2 ? { recipe_id: 'r3', title: 'Pasta Penne con Tomate y Orégano', completed: false, locked: false } :
-           d.index === 3 ? { recipe_id: 'r5', title: 'Arroz Integral con Salteado de Verduras', completed: false, locked: false } :
+    lunch: d.index === 1 ? { recipe_id: 'r3', title: 'Pollo a la Plancha con Ensalada', completed: false, locked: true } :
+           d.index === 2 ? { recipe_id: 'r2', title: 'Macarrones con Atún', completed: false, locked: false } :
+           d.index === 3 ? { recipe_id: 'r1', title: 'Arroz con Salteado de Verduras', completed: false, locked: false } :
+           d.index === 4 ? { recipe_id: 'r4', title: 'Salmón al Horno con Quinoa y Verduras', completed: false, locked: false } :
            { recipe_id: null, title: 'Sin planificar', completed: false, locked: false },
-    dinner: d.index === 1 ? { recipe_id: 'r2', title: 'Salmón al Horno con Guisantes', completed: false, locked: false } :
-            d.index === 2 ? { recipe_id: 'r4', title: 'Tortilla de Patatas con Ensalada', completed: false, locked: true } :
+    dinner: d.index === 1 ? { recipe_id: 'r6', title: 'Tortilla con Atún y Queso', completed: false, locked: false } :
+            d.index === 2 ? { recipe_id: 'r5', title: 'Tacos al Horno', completed: false, locked: true } :
             { recipe_id: null, title: 'Sin planificar', completed: false, locked: false }
   }));
 }
@@ -195,9 +192,9 @@ class AppDatabase {
       localStorage.setItem('qr_menu_products', JSON.stringify(products));
     }
 
-    if (!localStorage.getItem('qr_menu_recipes')) {
-      localStorage.setItem('qr_menu_recipes', JSON.stringify(DEFAULT_RECIPES));
-    }
+    // Establecer las 6 recetas reales del usuario y limpiar recetas ficticias
+    localStorage.setItem('qr_menu_recipes', JSON.stringify(DEFAULT_RECIPES));
+
     if (!localStorage.getItem('qr_menu_shopping')) {
       localStorage.setItem('qr_menu_shopping', JSON.stringify(INITIAL_SHOPPING_LIST));
     }
@@ -222,12 +219,9 @@ class AppDatabase {
       }
     });
 
-    // Inicializar Sincronización Multidispositivo en la Nube
+    // Inicializar Sincronización Multidispositivo en la Nube y enviar actualización
     this.initCloudSync();
-
-    if (productsUpdated) {
-      this.pushCloudSync();
-    }
+    this.pushCloudSync();
   }
 
   // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ---
