@@ -257,8 +257,15 @@ class AppDatabase {
     if (this.isSyncing) return;
     try {
       this.isSyncing = true;
-      const res = await fetch(this.cloudEndpoint, {
-        headers: { 'Accept': 'application/json' }
+      // BUST CDN CACHE WITH UNIQUE TIMESTAMP QUERY PARAM & NO-STORE HEADERS
+      const cacheBustUrl = `${this.cloudEndpoint}?nocache=${Date.now()}`;
+      const res = await fetch(cacheBustUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
       });
 
       if (!res.ok) {
@@ -285,8 +292,8 @@ class AppDatabase {
       const localLastUpdated = parseInt(localStorage.getItem('qr_menu_last_updated') || '0');
       const cloudUpdatedAt = parseInt(cloudData.updated_at || '0');
 
-      // Si la nube tiene una versión más reciente que la local, sustituir el estado local completo
-      if (cloudUpdatedAt > localLastUpdated) {
+      // Si la nube tiene una versión más reciente (o si es la sincronización inicial), actualizar local
+      if (cloudUpdatedAt > localLastUpdated || !localStorage.getItem('qr_menu_last_updated')) {
         let UIChanged = false;
 
         if (Array.isArray(cloudData.products)) {
@@ -306,7 +313,7 @@ class AppDatabase {
           UIChanged = true;
         }
 
-        localStorage.setItem('qr_menu_last_updated', String(cloudUpdatedAt));
+        localStorage.setItem('qr_menu_last_updated', String(cloudUpdatedAt || Date.now()));
 
         if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
           window.appUi.refreshCurrentView();
@@ -320,6 +327,7 @@ class AppDatabase {
       }
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
+      this.updateSyncIndicator(false);
     } finally {
       this.isSyncing = false;
     }
@@ -341,7 +349,10 @@ class AppDatabase {
       this.updateSyncIndicator('syncing');
       const res = await fetch(this.cloudEndpoint, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store'
+        },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
