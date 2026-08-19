@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diata-pwa-v117';
+const CACHE_NAME = 'diata-pwa-v118';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -39,10 +39,16 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch (Network First con Fallback a Caché)
+// Fetch (Network First con Fallback a Caché para assets estáticos)
 self.addEventListener('fetch', (event) => {
-  // Ignorar peticiones no GET o webhooks externos
-  if (event.request.method !== 'GET' || event.request.url.includes('webhook')) {
+  // Ignorar peticiones no GET, APIs de sincronización o webhooks para evitar caché en peticiones en vivo
+  if (
+    event.request.method !== 'GET' ||
+    event.request.url.includes('extendsclass.com') ||
+    event.request.url.includes('jsonblob.com') ||
+    event.request.url.includes('nocache=') ||
+    event.request.url.includes('webhook')
+  ) {
     return;
   }
 

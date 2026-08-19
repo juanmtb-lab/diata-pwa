@@ -969,24 +969,24 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=117"></script>
-  <script src="app.js?v=117"></script>
+  <script src="db.js?v=118"></script>
+  <script src="app.js?v=118"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v117')) caches.delete(key);
+          if (!key.includes('v118')) caches.delete(key);
         });
       });
     }
-    // Registrar Service Worker para PWA
+    // Registrar y forzar actualización de Service Worker para PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
           .then(reg => {
             reg.update();
-            console.log('PWA ServiceWorker actualizado:', reg.scope);
+            console.log('PWA ServiceWorker v118 activado:', reg.scope);
           })
           .catch(err => console.warn('Error registrando ServiceWorker:', err));
       });
