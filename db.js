@@ -225,10 +225,11 @@ class AppDatabase {
     this.pushCloudSync();
   }
 
-  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (AUTO-HEALING & HIGH AVAILABILITY) ---
   initCloudSync() {
-    this.cloudSyncId = '019fc8c0-c09b-74dd-8e4a-ac2f5bbc157e';
-    this.cloudEndpoint = `https://jsonblob.com/api/jsonBlob/${this.cloudSyncId}`;
+    // ID de contenedor compartido por defecto para la familia
+    this.cloudSyncId = 'dabdacb';
+    this.cloudEndpoint = `https://extendsclass.com/api/json-storage/bin/${this.cloudSyncId}`;
     this.isSyncing = false;
 
     // Primer pull e integración al arrancar
@@ -260,8 +261,26 @@ class AppDatabase {
       const res = await fetch(this.cloudEndpoint, {
         headers: { 'Accept': 'application/json' }
       });
-      if (!res.ok) return;
-      const cloudData = await res.json();
+
+      if (!res.ok) {
+        // Si el contenedor fue borrado o no responde (404), auto-recuperar subiendo el estado local
+        await this.pushCloudSync();
+        return;
+      }
+
+      const rawText = await res.text();
+      let cloudData = null;
+      try {
+        const parsed = JSON.parse(rawText);
+        if (parsed && parsed.data) {
+          cloudData = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
+        } else {
+          cloudData = parsed;
+        }
+      } catch (e) {
+        return;
+      }
+
       if (!cloudData) return;
 
       let hasLocalChanges = false;
@@ -277,7 +296,7 @@ class AppDatabase {
           if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
         });
 
-        // Fusión bidireccional: incorporar locales que no estén en la nube
+        // Fusión bidireccional: incorporar productos locales que no estén en la nube
         localProducts.forEach(p => {
           if (p && p.name) {
             const key = p.name.toLowerCase().trim();
@@ -315,6 +334,13 @@ class AppDatabase {
             if (!shoppingMap.has(key)) {
               shoppingMap.set(key, s);
               hasLocalChanges = true;
+            } else {
+              // Si el ítem existe en ambos, priorizar estado comprado o la cantidad más reciente
+              const existing = shoppingMap.get(key);
+              if (s.status === 'bought' && existing.status !== 'bought') {
+                existing.status = 'bought';
+                hasCloudChanges = true;
+              }
             }
           }
         });
