@@ -225,21 +225,20 @@ class AppDatabase {
     this.pushCloudSync();
   }
 
-  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (AUTO-HEALING & HIGH AVAILABILITY) ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (MASTER STATE REPLICATION) ---
   initCloudSync() {
-    // ID de contenedor compartido por defecto para la familia
     this.cloudSyncId = 'dabdacb';
     this.cloudEndpoint = `https://extendsclass.com/api/json-storage/bin/${this.cloudSyncId}`;
     this.isSyncing = false;
 
-    // Primer pull e integración al arrancar
+    // Pull inicial al arrancar
     this.pullCloudSync();
 
-    // Polling ultrarrápido en segundo plano cada 3 segundos para sincronización instantánea entre móviles y PC
+    // Polling en segundo plano cada 2 segundos para sincronización instantánea entre móviles y PC
     if (!this._cloudSyncInterval) {
       this._cloudSyncInterval = setInterval(() => {
         this.pullCloudSync(true);
-      }, 3000);
+      }, 2000);
     }
 
     // Sincronizar automáticamente cuando el usuario desbloquea o vuelve a la app
@@ -263,7 +262,7 @@ class AppDatabase {
       });
 
       if (!res.ok) {
-        // Si el contenedor fue borrado o no responde (404), auto-recuperar subiendo el estado local
+        // Si el contenedor falla, re-publicar el estado local actual
         await this.pushCloudSync();
         return;
       }
@@ -283,126 +282,42 @@ class AppDatabase {
 
       if (!cloudData) return;
 
-      let hasLocalChanges = false;
-      let hasCloudChanges = false;
+      const localLastUpdated = parseInt(localStorage.getItem('qr_menu_last_updated') || '0');
+      const cloudUpdatedAt = parseInt(cloudData.updated_at || '0');
 
-      // 1. Fusionar Productos (Catálogo Habitual)
-      if (Array.isArray(cloudData.products)) {
-        const localProducts = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
-        const productMap = new Map();
-        
-        // Cargar productos de la nube
-        cloudData.products.forEach(p => {
-          if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
-        });
+      // Si la nube tiene una versión más reciente que la local, sustituir el estado local completo
+      if (cloudUpdatedAt > localLastUpdated) {
+        let UIChanged = false;
 
-        // Fusión bidireccional: incorporar productos locales que no estén en la nube
-        localProducts.forEach(p => {
-          if (p && p.name) {
-            const key = p.name.toLowerCase().trim();
-            if (!productMap.has(key)) {
-              productMap.set(key, p);
-              hasLocalChanges = true;
-            }
-          }
-        });
-
-        const mergedProducts = Array.from(productMap.values());
-        if (mergedProducts.length !== localProducts.length || hasLocalChanges) {
-          localStorage.setItem('qr_menu_products', JSON.stringify(mergedProducts));
-          hasCloudChanges = true;
+        if (Array.isArray(cloudData.products)) {
+          localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
+          UIChanged = true;
         }
-      }
-
-      // 2. Fusionar Lista de la Compra
-      if (Array.isArray(cloudData.shopping)) {
-        const localShopping = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
-        const shoppingMap = new Map();
-
-        // Cargar ítems de la nube
-        cloudData.shopping.forEach(s => {
-          if (s && (s.id || s.name)) {
-            const key = (s.id || s.name).toLowerCase().trim();
-            shoppingMap.set(key, s);
-          }
-        });
-
-        // Fusión bidireccional: incorporar ítems locales que falten en la nube
-        localShopping.forEach(s => {
-          if (s && (s.id || s.name)) {
-            const key = (s.id || s.name).toLowerCase().trim();
-            if (!shoppingMap.has(key)) {
-              shoppingMap.set(key, s);
-              hasLocalChanges = true;
-            } else {
-              // Si el ítem existe en ambos, priorizar estado comprado o la cantidad más reciente
-              const existing = shoppingMap.get(key);
-              if (s.status === 'bought' && existing.status !== 'bought') {
-                existing.status = 'bought';
-                hasCloudChanges = true;
-              }
-            }
-          }
-        });
-
-        const mergedShopping = Array.from(shoppingMap.values());
-        if (JSON.stringify(mergedShopping) !== JSON.stringify(localShopping)) {
-          localStorage.setItem('qr_menu_shopping', JSON.stringify(mergedShopping));
-          hasCloudChanges = true;
+        if (Array.isArray(cloudData.recipes)) {
+          localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
+          UIChanged = true;
         }
-      }
-
-      // 3. Fusionar Recetas
-      if (Array.isArray(cloudData.recipes)) {
-        const localRecipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
-        const recipeMap = new Map();
-
-        cloudData.recipes.forEach(r => {
-          if (r && (r.id || r.title)) {
-            const key = (r.id || r.title).toLowerCase().trim();
-            recipeMap.set(key, r);
-          }
-        });
-
-        localRecipes.forEach(r => {
-          if (r && (r.id || r.title)) {
-            const key = (r.id || r.title).toLowerCase().trim();
-            if (!recipeMap.has(key)) {
-              recipeMap.set(key, r);
-              hasLocalChanges = true;
-            }
-          }
-        });
-
-        const mergedRecipes = Array.from(recipeMap.values());
-        if (JSON.stringify(mergedRecipes) !== JSON.stringify(localRecipes)) {
-          localStorage.setItem('qr_menu_recipes', JSON.stringify(mergedRecipes));
-          hasCloudChanges = true;
+        if (Array.isArray(cloudData.shopping)) {
+          localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
+          UIChanged = true;
         }
-      }
-
-      // 4. Menú Semanal
-      if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
-        const localWeekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
-        if (JSON.stringify(cloudData.weekly) !== JSON.stringify(localWeekly)) {
+        if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
           localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
-          hasCloudChanges = true;
+          UIChanged = true;
         }
-      }
 
-      // Si hubo cambios traídos de la nube, refrescar la interfaz inmediatamente
-      if (hasCloudChanges) {
-        if (window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
+        localStorage.setItem('qr_menu_last_updated', String(cloudUpdatedAt));
+
+        if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
           window.appUi.refreshCurrentView();
         }
-      }
-
-      // Si el terminal local tenía datos nuevos que no estaban en la nube, subirlos de vuelta
-      if (hasLocalChanges) {
+        this.updateSyncIndicator(true);
+      } else if (localLastUpdated > cloudUpdatedAt) {
+        // Si el local tiene cambios más recientes no subidos aún, empujarlos a la nube
         this.pushCloudSync();
+      } else {
+        this.updateSyncIndicator(true);
       }
-
-      this.updateSyncIndicator(true);
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
     } finally {
@@ -411,8 +326,11 @@ class AppDatabase {
   }
 
   async pushCloudSync() {
+    const timestamp = Date.now();
+    localStorage.setItem('qr_menu_last_updated', String(timestamp));
+
     const payload = {
-      updated_at: Date.now(),
+      updated_at: timestamp,
       products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
       recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
       shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
