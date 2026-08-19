@@ -256,19 +256,16 @@ class AppDatabase {
     if (this.isSyncing) return;
     try {
       this.isSyncing = true;
-      // BUST CDN CACHE WITH UNIQUE TIMESTAMP QUERY PARAM & NO-STORE HEADERS
       const cacheBustUrl = `${this.cloudEndpoint}?nocache=${Date.now()}`;
       const res = await fetch(cacheBustUrl, {
         headers: {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
+          'Accept': 'application/json'
         },
         cache: 'no-store'
       });
 
       if (!res.ok) {
-        await this.pushCloudSync();
+        this.updateSyncIndicator(false);
         return;
       }
 
@@ -307,35 +304,32 @@ class AppDatabase {
         w: localWeekly
       });
 
-      // Si la firma local es idéntica a la nube, el terminal está 100% al día
-      if (cloudFingerprint === localFingerprint) {
-        this.updateSyncIndicator(true);
-        return;
+      // Si la firma local difiere de la nube, actualizar LocalStorage
+      if (cloudFingerprint !== localFingerprint) {
+        let UIChanged = false;
+
+        if (Array.isArray(cloudData.products)) {
+          localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
+          UIChanged = true;
+        }
+        if (Array.isArray(cloudData.recipes)) {
+          localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
+          UIChanged = true;
+        }
+        if (Array.isArray(cloudData.shopping)) {
+          localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
+          UIChanged = true;
+        }
+        if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
+          localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
+          UIChanged = true;
+        }
+
+        if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
+          window.appUi.refreshCurrentView();
+        }
       }
 
-      // Si las firmas difieren, aplicar el estado maestro de la nube al LocalStorage
-      let UIChanged = false;
-
-      if (Array.isArray(cloudData.products)) {
-        localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
-        UIChanged = true;
-      }
-      if (Array.isArray(cloudData.recipes)) {
-        localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
-        UIChanged = true;
-      }
-      if (Array.isArray(cloudData.shopping)) {
-        localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
-        UIChanged = true;
-      }
-      if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
-        localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
-        UIChanged = true;
-      }
-
-      if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
-        window.appUi.refreshCurrentView();
-      }
       this.updateSyncIndicator(true);
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
@@ -359,8 +353,7 @@ class AppDatabase {
       const res = await fetch(this.cloudEndpoint, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store'
+          'Content-Type': 'text/plain'
         },
         body: JSON.stringify(payload)
       });
