@@ -269,7 +269,6 @@ class AppDatabase {
       });
 
       if (!res.ok) {
-        // Si el contenedor falla, re-publicar el estado local actual
         await this.pushCloudSync();
         return;
       }
@@ -289,45 +288,56 @@ class AppDatabase {
 
       if (!cloudData) return;
 
-      const localLastUpdated = parseInt(localStorage.getItem('qr_menu_last_updated') || '0');
-      const cloudUpdatedAt = parseInt(cloudData.updated_at || '0');
+      const localProducts = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
+      const localRecipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
       const localShopping = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
-      const cloudHasShopping = Array.isArray(cloudData.shopping) && cloudData.shopping.length > 0;
-      const localIsEmpty = localShopping.length === 0;
+      const localWeekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
 
-      // Si la nube es más reciente, o si la pantalla local está vacía y la nube tiene artículos, actualizar local
-      if (cloudUpdatedAt > localLastUpdated || !localStorage.getItem('qr_menu_last_updated') || (localIsEmpty && cloudHasShopping)) {
-        let UIChanged = false;
+      // Crear firmas digitales de estado para comparación instantánea
+      const cloudFingerprint = JSON.stringify({
+        p: cloudData.products || [],
+        r: cloudData.recipes || [],
+        s: cloudData.shopping || [],
+        w: cloudData.weekly || []
+      });
 
-        if (Array.isArray(cloudData.products)) {
-          localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
-          UIChanged = true;
-        }
-        if (Array.isArray(cloudData.recipes)) {
-          localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
-          UIChanged = true;
-        }
-        if (Array.isArray(cloudData.shopping)) {
-          localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
-          UIChanged = true;
-        }
-        if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
-          localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
-          UIChanged = true;
-        }
+      const localFingerprint = JSON.stringify({
+        p: localProducts,
+        r: localRecipes,
+        s: localShopping,
+        w: localWeekly
+      });
 
-        localStorage.setItem('qr_menu_last_updated', String(Math.max(cloudUpdatedAt, Date.now())));
-
-        if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
-          window.appUi.refreshCurrentView();
-        }
+      // Si la firma local es idéntica a la nube, el terminal está 100% al día
+      if (cloudFingerprint === localFingerprint) {
         this.updateSyncIndicator(true);
-      } else if (localLastUpdated > cloudUpdatedAt) {
-        // Si el local tiene cambios más recientes no subidos aún, empujarlos a la nube
-        this.pushCloudSync();
-      } else {
-        this.updateSyncIndicator(true);
+        return;
       }
+
+      // Si las firmas difieren, aplicar el estado maestro de la nube al LocalStorage
+      let UIChanged = false;
+
+      if (Array.isArray(cloudData.products)) {
+        localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
+        UIChanged = true;
+      }
+      if (Array.isArray(cloudData.recipes)) {
+        localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
+        UIChanged = true;
+      }
+      if (Array.isArray(cloudData.shopping)) {
+        localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
+        UIChanged = true;
+      }
+      if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
+        localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
+        UIChanged = true;
+      }
+
+      if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
+        window.appUi.refreshCurrentView();
+      }
+      this.updateSyncIndicator(true);
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
       this.updateSyncIndicator(false);
@@ -337,11 +347,8 @@ class AppDatabase {
   }
 
   async pushCloudSync() {
-    const timestamp = Date.now();
-    localStorage.setItem('qr_menu_last_updated', String(timestamp));
-
     const payload = {
-      updated_at: timestamp,
+      updated_at: Date.now(),
       products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
       recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
       shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
