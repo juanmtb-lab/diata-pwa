@@ -256,14 +256,7 @@ class AppDatabase {
     if (this.isSyncing) return;
     try {
       this.isSyncing = true;
-      const cacheBustUrl = `${this.cloudEndpoint}?nocache=${Date.now()}`;
-      const res = await fetch(cacheBustUrl, {
-        headers: {
-          'Accept': 'application/json'
-        },
-        cache: 'no-store'
-      });
-
+      const res = await fetch(this.cloudEndpoint);
       if (!res.ok) {
         this.updateSyncIndicator(false);
         return;
@@ -273,64 +266,99 @@ class AppDatabase {
       let cloudData = null;
       try {
         const parsed = JSON.parse(rawText);
-        if (parsed && parsed.data) {
-          cloudData = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
-        } else {
-          cloudData = parsed;
-        }
+        cloudData = (parsed && parsed.data) ? (typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data) : parsed;
       } catch (e) {
+        this.updateSyncIndicator(false);
         return;
       }
 
       if (!cloudData) return;
 
       const localProducts = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
-      const localRecipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
       const localShopping = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
+      const localRecipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
       const localWeekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
 
-      // Crear firmas digitales de estado para comparación instantánea
-      const cloudFingerprint = JSON.stringify({
-        p: cloudData.products || [],
-        r: cloudData.recipes || [],
-        s: cloudData.shopping || [],
-        w: cloudData.weekly || []
-      });
+      let needsPush = false;
+      let needsUIRefresh = false;
 
-      const localFingerprint = JSON.stringify({
-        p: localProducts,
-        r: localRecipes,
-        s: localShopping,
-        w: localWeekly
-      });
+      // 1. FUSIÓN BIDIRECCIONAL DE LISTA DE COMPRA
+      const cloudShopping = Array.isArray(cloudData.shopping) ? cloudData.shopping : [];
+      const shoppingMap = new Map();
 
-      // Si la firma local difiere de la nube, actualizar LocalStorage
-      if (cloudFingerprint !== localFingerprint) {
-        let UIChanged = false;
-
-        if (Array.isArray(cloudData.products)) {
-          localStorage.setItem('qr_menu_products', JSON.stringify(cloudData.products));
-          UIChanged = true;
+      // Cargar ítems provenientes de la nube
+      cloudShopping.forEach(item => {
+        if (item && (item.name || item.id)) {
+          const key = (item.name || item.id).toLowerCase().trim();
+          shoppingMap.set(key, item);
         }
-        if (Array.isArray(cloudData.recipes)) {
+      });
+
+      // Incorporar ítems creados localmente que faltasen en la nube
+      localShopping.forEach(item => {
+        if (item && (item.name || item.id)) {
+          const key = (item.name || item.id).toLowerCase().trim();
+          if (!shoppingMap.has(key)) {
+            shoppingMap.set(key, item);
+            needsPush = true;
+          }
+        }
+      });
+
+      const mergedShopping = Array.from(shoppingMap.values());
+      if (JSON.stringify(mergedShopping) !== JSON.stringify(localShopping)) {
+        localStorage.setItem('qr_menu_shopping', JSON.stringify(mergedShopping));
+        needsUIRefresh = true;
+      }
+
+      // 2. FUSIÓN BIDIRECCIONAL DE PRODUCTOS (CATÁLOGO)
+      const cloudProducts = Array.isArray(cloudData.products) ? cloudData.products : [];
+      const productMap = new Map();
+      cloudProducts.forEach(p => {
+        if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
+      });
+      localProducts.forEach(p => {
+        if (p && p.name) {
+          const key = p.name.toLowerCase().trim();
+          if (!productMap.has(key)) {
+            productMap.set(key, p);
+            needsPush = true;
+          }
+        }
+      });
+
+      const mergedProducts = Array.from(productMap.values());
+      if (JSON.stringify(mergedProducts) !== JSON.stringify(localProducts)) {
+        localStorage.setItem('qr_menu_products', JSON.stringify(mergedProducts));
+        needsUIRefresh = true;
+      }
+
+      // 3. RECETAS
+      if (Array.isArray(cloudData.recipes) && cloudData.recipes.length > 0) {
+        if (JSON.stringify(cloudData.recipes) !== JSON.stringify(localRecipes)) {
           localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
-          UIChanged = true;
-        }
-        if (Array.isArray(cloudData.shopping)) {
-          localStorage.setItem('qr_menu_shopping', JSON.stringify(cloudData.shopping));
-          UIChanged = true;
-        }
-        if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
-          localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
-          UIChanged = true;
-        }
-
-        if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
-          window.appUi.refreshCurrentView();
+          needsUIRefresh = true;
         }
       }
 
+      // 4. MENÚ SEMANAL
+      if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
+        if (JSON.stringify(cloudData.weekly) !== JSON.stringify(localWeekly)) {
+          localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
+          needsUIRefresh = true;
+        }
+      }
+
+      if (needsUIRefresh && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
+        window.appUi.refreshCurrentView();
+      }
+
       this.updateSyncIndicator(true);
+
+      // Si había ítems locales nuevos (como Atún), subirlos inmediatamente a la nube
+      if (needsPush) {
+        await this.pushCloudSync();
+      }
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
       this.updateSyncIndicator(false);
@@ -352,9 +380,6 @@ class AppDatabase {
       this.updateSyncIndicator('syncing');
       const res = await fetch(this.cloudEndpoint, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'text/plain'
-        },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
