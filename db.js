@@ -291,9 +291,12 @@ class AppDatabase {
 
       const localLastUpdated = parseInt(localStorage.getItem('qr_menu_last_updated') || '0');
       const cloudUpdatedAt = parseInt(cloudData.updated_at || '0');
+      const localShopping = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
+      const cloudHasShopping = Array.isArray(cloudData.shopping) && cloudData.shopping.length > 0;
+      const localIsEmpty = localShopping.length === 0;
 
-      // Si la nube tiene una versión más reciente (o si es la sincronización inicial), actualizar local
-      if (cloudUpdatedAt > localLastUpdated || !localStorage.getItem('qr_menu_last_updated')) {
+      // Si la nube es más reciente, o si la pantalla local está vacía y la nube tiene artículos, actualizar local
+      if (cloudUpdatedAt > localLastUpdated || !localStorage.getItem('qr_menu_last_updated') || (localIsEmpty && cloudHasShopping)) {
         let UIChanged = false;
 
         if (Array.isArray(cloudData.products)) {
@@ -313,7 +316,7 @@ class AppDatabase {
           UIChanged = true;
         }
 
-        localStorage.setItem('qr_menu_last_updated', String(cloudUpdatedAt || Date.now()));
+        localStorage.setItem('qr_menu_last_updated', String(Math.max(cloudUpdatedAt, Date.now())));
 
         if (UIChanged && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
           window.appUi.refreshCurrentView();
