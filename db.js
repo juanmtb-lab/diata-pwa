@@ -220,9 +220,8 @@ class AppDatabase {
       }
     });
 
-    // Inicializar Sincronización Multidispositivo en la Nube y enviar actualización
+    // Inicializar Sincronización Multidispositivo en la Nube
     this.initCloudSync();
-    this.pushCloudSync();
   }
 
   // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (MASTER STATE REPLICATION) ---
