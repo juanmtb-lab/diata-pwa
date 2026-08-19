@@ -6,6 +6,29 @@
   <title>Diata - Menús Semanales y Lista de la Compra</title>
   <meta name="description" content="Diata: Gestión inteligente de menús semanales de hogar, recetas y lista de la compra." />
   
+  <script>
+    (function() {
+      const CURRENT_V = 'v122';
+      if (localStorage.getItem('diata_sw_installed_version') !== CURRENT_V) {
+        localStorage.setItem('diata_sw_installed_version', CURRENT_V);
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (let reg of registrations) {
+              reg.unregister();
+            }
+          });
+        }
+        if ('caches' in window) {
+          caches.keys().then(function(keys) {
+            keys.forEach(function(key) {
+              caches.delete(key);
+            });
+          });
+        }
+      }
+    })();
+  </script>
+
   <!-- Soporte PWA e Instalación Móvil (iOS & Android) -->
   <link rel="manifest" href="manifest.json?v=105" />
   <link rel="icon" type="image/png" href="icons/icon-192.png?v=105" />
@@ -107,7 +130,7 @@
             Diata
             <span class="text-[10px] font-normal px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">Día & Dieta</span>
           </h1>
-          <p class="text-xs text-slate-400 light:text-slate-500 flex items-center gap-1">
+          <p class="text-xs text-slate-400 light:text-slate-500 flex items-center gap-1 cursor-pointer hover:text-white transition" onclick="appDb.pullCloudSync(); if(window.appUi) appUi.showToast('Sincronizando con la Nube... 🔄');" title="Haz clic para forzar sincronización">
             <span id="connection-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
             <span id="connection-status-text">Online</span>
           </p>
@@ -969,14 +992,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=121"></script>
-  <script src="app.js?v=121"></script>
+  <script src="db.js?v=122"></script>
+  <script src="app.js?v=122"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v121')) caches.delete(key);
+          if (!key.includes('v122')) caches.delete(key);
         });
       });
     }
