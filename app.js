@@ -1660,6 +1660,17 @@ class AppUI {
     this.showToast('Reglas y configuración guardadas con éxito ⚙️');
   }
 
+  triggerPwaInstall() {
+    if (window.deferredPwaPrompt) {
+      window.deferredPwaPrompt.prompt();
+      window.deferredPwaPrompt.userChoice.then((choiceResult) => {
+        window.deferredPwaPrompt = null;
+      });
+    } else {
+      alert("Para instalar Diata como App nativa en tu móvil:\n\n📱 En Android (Chrome):\n1. Toca el menú de 3 puntos (⋮) arriba a la derecha en Chrome.\n2. Selecciona 'Instalar aplicación' o 'Añadir a la pantalla de inicio'.\n\n🍎 En iPhone (Safari):\n1. Toca el botón Compartir (el icono de un cuadrado con una flecha hacia arriba ⎋ en la barra inferior).\n2. Desplázate hacia abajo y selecciona 'Añadir a la pantalla de inicio'.");
+    }
+  }
+
   resetToDefaults() {
     if (confirm('¿Deseas restablecer todos los datos a la configuración inicial de ejemplo?')) {
       localStorage.clear();
@@ -1669,6 +1680,12 @@ class AppUI {
     }
   }
 }
+
+window.deferredPwaPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.deferredPwaPrompt = e;
+});
 
 window.appUi = new AppUI();
 

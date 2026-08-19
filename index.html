@@ -139,6 +139,11 @@
 
       <!-- Acciones de Cabecera -->
       <div class="flex items-center space-x-2">
+        <!-- Botón Instalar App PWA -->
+        <button id="btn-pwa-install" onclick="appUi.triggerPwaInstall()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-600/30">
+          <i data-lucide="download" class="w-4 h-4"></i> Instalar App
+        </button>
+
         <!-- Selector Modo Oscuro/Claro -->
         <button id="btn-theme-toggle" class="p-2 rounded-lg bg-slate-800 light:bg-slate-100 text-slate-300 light:text-slate-600 hover:text-white transition">
           <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
@@ -992,14 +997,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=122"></script>
-  <script src="app.js?v=122"></script>
+  <script src="db.js?v=123"></script>
+  <script src="app.js?v=123"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v122')) caches.delete(key);
+          if (!key.includes('v123')) caches.delete(key);
         });
       });
     }
