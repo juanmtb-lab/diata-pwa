@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diata-pwa-v126';
+const CACHE_NAME = 'diata-pwa-v128';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -44,6 +44,7 @@ self.addEventListener('fetch', (event) => {
   // Ignorar peticiones no GET, APIs de sincronización o webhooks para evitar caché en peticiones en vivo
   if (
     event.request.method !== 'GET' ||
+    event.request.url.includes('restful-api.dev') ||
     event.request.url.includes('extendsclass.com') ||
     event.request.url.includes('jsonblob.com') ||
     event.request.url.includes('nocache=') ||

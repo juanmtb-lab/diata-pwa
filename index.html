@@ -997,14 +997,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=126"></script>
-  <script src="app.js?v=126"></script>
+  <script src="db.js?v=128"></script>
+  <script src="app.js?v=128"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v126')) caches.delete(key);
+          if (!key.includes('v128')) caches.delete(key);
         });
       });
     }

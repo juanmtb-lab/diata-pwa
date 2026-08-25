@@ -224,10 +224,10 @@ class AppDatabase {
     this.initCloudSync();
   }
 
-  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (MASTER STATE REPLICATION) ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (ZERO-CACHE REST ENGINE) ---
   initCloudSync() {
-    this.cloudSyncId = 'dabdacb';
-    this.cloudEndpoint = `https://extendsclass.com/api/json-storage/bin/${this.cloudSyncId}`;
+    this.cloudSyncId = 'ff8081819ff5b11001a03a13e66b1f93';
+    this.cloudEndpoint = `https://api.restful-api.dev/objects/${this.cloudSyncId}`;
     this.isSyncing = false;
 
     // Pull inicial al arrancar
@@ -254,29 +254,20 @@ class AppDatabase {
 
   async pullCloudSync(isSilent = false) {
     if (this.isSyncing) return;
-    // Si el usuario ha realizado una acción local (eliminar, marcar, limpiar) en los últimos 3.5s, pausar el pull para evitar que un GET en vuelo resucite ítems
-    if (this.lastMutationTime && (Date.now() - this.lastMutationTime < 3500)) {
+    if (this.lastMutationTime && (Date.now() - this.lastMutationTime < 1500)) {
       return;
     }
 
     try {
       this.isSyncing = true;
-      const res = await fetch(this.cloudEndpoint);
+      const res = await fetch(this.cloudEndpoint, { cache: 'no-store' });
       if (!res.ok) {
         this.updateSyncIndicator(false);
         return;
       }
 
-      const rawText = await res.text();
-      let cloudData = null;
-      try {
-        const parsed = JSON.parse(rawText);
-        cloudData = (parsed && parsed.data) ? (typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data) : parsed;
-      } catch (e) {
-        this.updateSyncIndicator(false);
-        return;
-      }
-
+      const json = await res.json();
+      const cloudData = json ? (json.data || json) : null;
       if (!cloudData) return;
 
       const localProducts = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
@@ -286,7 +277,7 @@ class AppDatabase {
 
       let needsUIRefresh = false;
 
-      // 1. REPLICACIÓN DE LISTA DE COMPRA CON SANITIZACIÓN (Evita undefined y resucitados)
+      // 1. REPLICACIÓN MAESTRA DE LISTA DE COMPRA (Cero elementos resucitados)
       if (Array.isArray(cloudData.shopping)) {
         const sanitizedCloudShopping = cloudData.shopping.map(item => ({
           id: item.id || ('s_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
@@ -352,17 +343,23 @@ class AppDatabase {
   async pushCloudSync() {
     this.lastMutationTime = Date.now();
     const payload = {
-      updated_at: Date.now(),
-      products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
-      recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
-      shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
-      weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
+      name: "Diata Sync Container",
+      data: {
+        updated_at: Date.now(),
+        products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
+        recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
+        shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
+        weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
+      }
     };
 
     try {
       this.updateSyncIndicator('syncing');
       const res = await fetch(this.cloudEndpoint, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
@@ -374,6 +371,7 @@ class AppDatabase {
       console.warn('Push cloud sync error:', err);
       this.updateSyncIndicator(false);
     }
+  }
   }
 
   updateSyncIndicator(state) {
