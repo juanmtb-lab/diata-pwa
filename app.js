@@ -591,8 +591,8 @@ class AppUI {
                 ${isLowStock ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">Casi agotado</span>' : ''}
               </div>
               <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300">${item.category}</span>
-                <span>${item.quantity} ${item.unit || 'uds'}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300">${(item.category && item.category !== 'undefined') ? item.category : 'Despensa'}</span>
+                <span>${(item.quantity && item.quantity !== 'undefined') ? item.quantity : 1} ${(item.unit && item.unit !== 'undefined') ? item.unit : 'uds'}</span>
               </div>
             </div>
           </div>

@@ -254,6 +254,11 @@ class AppDatabase {
 
   async pullCloudSync(isSilent = false) {
     if (this.isSyncing) return;
+    // Si el usuario ha realizado una acción local (eliminar, marcar, limpiar) en los últimos 3.5s, pausar el pull para evitar que un GET en vuelo resucite ítems
+    if (this.lastMutationTime && (Date.now() - this.lastMutationTime < 3500)) {
+      return;
+    }
+
     try {
       this.isSyncing = true;
       const res = await fetch(this.cloudEndpoint);
@@ -279,58 +284,40 @@ class AppDatabase {
       const localRecipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
       const localWeekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
 
-      let needsPush = false;
       let needsUIRefresh = false;
 
-      // 1. FUSIÓN BIDIRECCIONAL DE LISTA DE COMPRA
-      const cloudShopping = Array.isArray(cloudData.shopping) ? cloudData.shopping : [];
-      const shoppingMap = new Map();
+      // 1. REPLICACIÓN DE LISTA DE COMPRA CON SANITIZACIÓN (Evita undefined y resucitados)
+      if (Array.isArray(cloudData.shopping)) {
+        const sanitizedCloudShopping = cloudData.shopping.map(item => ({
+          id: item.id || ('s_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+          name: item.name || 'Producto',
+          category: (item.category && item.category !== 'undefined') ? item.category : 'Despensa',
+          quantity: (item.quantity && item.quantity !== 'undefined') ? item.quantity : 1,
+          unit: (item.unit && item.unit !== 'undefined') ? item.unit : 'uds',
+          status: item.status || 'pending',
+          added_from_menu: item.added_from_menu || false
+        }));
 
-      // Cargar ítems provenientes de la nube
-      cloudShopping.forEach(item => {
-        if (item && (item.name || item.id)) {
-          const key = (item.name || item.id).toLowerCase().trim();
-          shoppingMap.set(key, item);
+        if (JSON.stringify(sanitizedCloudShopping) !== JSON.stringify(localShopping)) {
+          localStorage.setItem('qr_menu_shopping', JSON.stringify(sanitizedCloudShopping));
+          needsUIRefresh = true;
         }
-      });
-
-      // Incorporar ítems creados localmente que faltasen en la nube
-      localShopping.forEach(item => {
-        if (item && (item.name || item.id)) {
-          const key = (item.name || item.id).toLowerCase().trim();
-          if (!shoppingMap.has(key)) {
-            shoppingMap.set(key, item);
-            needsPush = true;
-          }
-        }
-      });
-
-      const mergedShopping = Array.from(shoppingMap.values());
-      if (JSON.stringify(mergedShopping) !== JSON.stringify(localShopping)) {
-        localStorage.setItem('qr_menu_shopping', JSON.stringify(mergedShopping));
-        needsUIRefresh = true;
       }
 
-      // 2. FUSIÓN BIDIRECCIONAL DE PRODUCTOS (CATÁLOGO)
-      const cloudProducts = Array.isArray(cloudData.products) ? cloudData.products : [];
-      const productMap = new Map();
-      cloudProducts.forEach(p => {
-        if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
-      });
-      localProducts.forEach(p => {
-        if (p && p.name) {
-          const key = p.name.toLowerCase().trim();
-          if (!productMap.has(key)) {
-            productMap.set(key, p);
-            needsPush = true;
-          }
-        }
-      });
+      // 2. REPLICACIÓN DE PRODUCTOS (CATÁLOGO)
+      if (Array.isArray(cloudData.products)) {
+        const sanitizedCloudProducts = cloudData.products.map(p => ({
+          id: p.id || ('p_' + Date.now()),
+          name: p.name || 'Producto',
+          category: (p.category && p.category !== 'undefined') ? p.category : 'Despensa',
+          unit: (p.unit && p.unit !== 'undefined') ? p.unit : 'uds',
+          is_essential: p.is_essential || false
+        }));
 
-      const mergedProducts = Array.from(productMap.values());
-      if (JSON.stringify(mergedProducts) !== JSON.stringify(localProducts)) {
-        localStorage.setItem('qr_menu_products', JSON.stringify(mergedProducts));
-        needsUIRefresh = true;
+        if (JSON.stringify(sanitizedCloudProducts) !== JSON.stringify(localProducts)) {
+          localStorage.setItem('qr_menu_products', JSON.stringify(sanitizedCloudProducts));
+          needsUIRefresh = true;
+        }
       }
 
       // 3. RECETAS
@@ -354,11 +341,6 @@ class AppDatabase {
       }
 
       this.updateSyncIndicator(true);
-
-      // Si había ítems locales nuevos (como Atún), subirlos inmediatamente a la nube
-      if (needsPush) {
-        await this.pushCloudSync();
-      }
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
       this.updateSyncIndicator(false);
@@ -368,6 +350,7 @@ class AppDatabase {
   }
 
   async pushCloudSync() {
+    this.lastMutationTime = Date.now();
     const payload = {
       updated_at: Date.now(),
       products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
@@ -453,7 +436,16 @@ class AppDatabase {
   }
 
   deleteShoppingItem(id) {
-    const list = this.getShoppingList().filter(i => i.id !== id);
+    const currentList = this.getShoppingList();
+    const targetItem = currentList.find(i => i.id === id);
+    const targetName = targetItem ? targetItem.name.toLowerCase().trim() : null;
+
+    const list = currentList.filter(i => {
+      if (i.id === id) return false;
+      if (targetName && i.name && i.name.toLowerCase().trim() === targetName) return false;
+      return true;
+    });
+
     this.saveShoppingList(list);
     return list;
   }
