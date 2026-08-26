@@ -176,29 +176,31 @@ class AppDatabase {
     let weekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
     let shopping = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
 
-    // Garantizar que los 36 productos del catálogo predeterminado siempre existan
+    // 1. Garantizar los 36 productos del catálogo habitual
     const productMap = new Map();
     DEFAULT_PRODUCTS.forEach(p => productMap.set(p.name.toLowerCase().trim(), p));
-    products.forEach(p => {
-      if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
-    });
+    if (Array.isArray(products)) {
+      products.forEach(p => {
+        if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
+      });
+    }
     products = Array.from(productMap.values());
     localStorage.setItem('qr_menu_products', JSON.stringify(products));
 
-    // Garantizar las 6 recetas auténticas del usuario
-    if (!recipes || !Array.isArray(recipes) || recipes.length === 0) {
+    // 2. Garantizar las 6 recetas auténticas del usuario
+    if (!recipes || !Array.isArray(recipes) || recipes.length < 6) {
       recipes = DEFAULT_RECIPES;
       localStorage.setItem('qr_menu_recipes', JSON.stringify(recipes));
     }
 
-    // Garantizar el menú semanal de 7 días
-    if (!weekly || !Array.isArray(weekly) || weekly.length === 0) {
+    // 3. Garantizar el menú semanal completo de 7 días
+    if (!weekly || !Array.isArray(weekly) || weekly.length < 7) {
       weekly = generateInitialMenu();
       localStorage.setItem('qr_menu_weekly', JSON.stringify(weekly));
     }
 
-    // Garantizar lista de compra inicial si está totalmente vacía
-    if (!shopping || !Array.isArray(shopping)) {
+    // 4. Garantizar lista de compra inicial si está vacía
+    if (!shopping || !Array.isArray(shopping) || shopping.length === 0) {
       shopping = INITIAL_SHOPPING_LIST;
       localStorage.setItem('qr_menu_shopping', JSON.stringify(shopping));
     }
@@ -212,24 +214,14 @@ class AppDatabase {
       }));
     }
 
-    // Migración automática de categorías obsoletas
-    ['qr_menu_products', 'qr_menu_shopping'].forEach(key => {
-      let raw = localStorage.getItem(key);
-      if (raw && (raw.includes('Baño') || raw.includes('Salsas'))) {
-        raw = raw.replace(/"category"\s*:\s*"Baño"/g, '"category":"Aseo Personal"');
-        raw = raw.replace(/"category"\s*:\s*"Salsas"/g, '"category":"Despensa"');
-        localStorage.setItem(key, raw);
-      }
-    });
-
     // Inicializar Sincronización Multidispositivo en la Nube
     this.initCloudSync();
   }
 
-  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (AUTO-HEALING ZERO-CACHE) ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (PROTECTED DATA ENGINE) ---
   initCloudSync() {
-    this.cloudSyncId = 'ff8081819ff5b11001a03a13e66b1f93';
-    this.cloudEndpoint = `https://api.restful-api.dev/objects/${this.cloudSyncId}`;
+    this.cloudSyncId = 'dabdacb';
+    this.cloudEndpoint = `https://extendsclass.com/api/json-storage/bin/${this.cloudSyncId}`;
     this.isSyncing = false;
 
     // Pull inicial al arrancar
@@ -262,14 +254,23 @@ class AppDatabase {
 
     try {
       this.isSyncing = true;
-      const res = await fetch(this.cloudEndpoint, { cache: 'no-store' });
+      const cacheBustUrl = `${this.cloudEndpoint}?nocache=${Date.now()}`;
+      const res = await fetch(cacheBustUrl, { cache: 'no-store' });
       if (!res.ok) {
         this.updateSyncIndicator(false);
         return;
       }
 
-      const json = await res.json();
-      const cloudData = json ? (json.data || json) : null;
+      const rawText = await res.text();
+      let cloudData = null;
+      try {
+        const parsed = JSON.parse(rawText);
+        cloudData = (parsed && parsed.data) ? (typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data) : parsed;
+      } catch (e) {
+        this.updateSyncIndicator(false);
+        return;
+      }
+
       if (!cloudData) return;
 
       const localProducts = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
@@ -281,7 +282,7 @@ class AppDatabase {
       let needsCloudRepair = false;
 
       // 1. REPLICACIÓN MAESTRA DE LISTA DE COMPRA
-      if (Array.isArray(cloudData.shopping)) {
+      if (Array.isArray(cloudData.shopping) && cloudData.shopping.length > 0) {
         const sanitizedCloudShopping = cloudData.shopping.map(item => ({
           id: item.id || ('s_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
           name: item.name || 'Producto',
@@ -298,7 +299,7 @@ class AppDatabase {
         }
       }
 
-      // 2. REPLICACIÓN DE PRODUCTOS (FUSIÓN CON CATÁLOGO COMPLETO)
+      // 2. REPLICACIÓN DE PRODUCTOS (FUSIÓN INDESTRUCTIBLE CON CATÁLOGO COMPLETO)
       const cloudProducts = Array.isArray(cloudData.products) ? cloudData.products : [];
       const mergedProductMap = new Map();
       DEFAULT_PRODUCTS.forEach(p => mergedProductMap.set(p.name.toLowerCase().trim(), p));
@@ -315,29 +316,29 @@ class AppDatabase {
         needsCloudRepair = true;
       }
 
-      // 3. RECETAS (AUTO-RECUPERACIÓN DE LAS 6 RECETAS SI LA NUBE VIENE VACÍA)
-      let recipesToUse = (Array.isArray(cloudData.recipes) && cloudData.recipes.length > 0) 
+      // 3. RECETAS (PROTECCIÓN Y AUTO-RESTAURACIÓN DE LAS 6 RECETAS)
+      let recipesToUse = (Array.isArray(cloudData.recipes) && cloudData.recipes.length >= 6) 
         ? cloudData.recipes 
-        : (localRecipes.length > 0 ? localRecipes : DEFAULT_RECIPES);
+        : (localRecipes.length >= 6 ? localRecipes : DEFAULT_RECIPES);
 
       if (JSON.stringify(recipesToUse) !== JSON.stringify(localRecipes)) {
         localStorage.setItem('qr_menu_recipes', JSON.stringify(recipesToUse));
         needsUIRefresh = true;
       }
-      if (!cloudData.recipes || cloudData.recipes.length === 0) {
+      if (!cloudData.recipes || cloudData.recipes.length < 6) {
         needsCloudRepair = true;
       }
 
-      // 4. MENÚ SEMANAL (AUTO-RECUPERACIÓN DEL MENÚ DE 7 DÍAS SI LA NUBE VIENE VACÍA)
-      let weeklyToUse = (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) 
+      // 4. MENÚ SEMANAL (PROTECCIÓN Y AUTO-RESTAURACIÓN DE LOS 7 DÍAS)
+      let weeklyToUse = (Array.isArray(cloudData.weekly) && cloudData.weekly.length >= 7) 
         ? cloudData.weekly 
-        : (localWeekly.length > 0 ? localWeekly : generateInitialMenu());
+        : (localWeekly.length >= 7 ? localWeekly : generateInitialMenu());
 
       if (JSON.stringify(weeklyToUse) !== JSON.stringify(localWeekly)) {
         localStorage.setItem('qr_menu_weekly', JSON.stringify(weeklyToUse));
         needsUIRefresh = true;
       }
-      if (!cloudData.weekly || cloudData.weekly.length === 0) {
+      if (!cloudData.weekly || cloudData.weekly.length < 7) {
         needsCloudRepair = true;
       }
 
@@ -347,7 +348,7 @@ class AppDatabase {
 
       this.updateSyncIndicator(true);
 
-      // Si la nube venía incompleta o vacía (ej: sin recetas o catálogo recortado), repararla en segundo plano
+      // Si la nube venía incompleta (ej: sin recetas o menú semanal recortado), repararla automáticamente
       if (needsCloudRepair) {
         await this.pushCloudSync();
       }
@@ -362,14 +363,11 @@ class AppDatabase {
   async pushCloudSync() {
     this.lastMutationTime = Date.now();
     const payload = {
-      name: "Diata Sync Container",
-      data: {
-        updated_at: Date.now(),
-        products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
-        recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
-        shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
-        weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
-      }
+      updated_at: Date.now(),
+      products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
+      recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
+      shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
+      weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
     };
 
     try {
@@ -377,7 +375,7 @@ class AppDatabase {
       const res = await fetch(this.cloudEndpoint, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'text/plain'
         },
         body: JSON.stringify(payload)
       });
@@ -390,7 +388,6 @@ class AppDatabase {
       console.warn('Push cloud sync error:', err);
       this.updateSyncIndicator(false);
     }
-  }
   }
 
   updateSyncIndicator(state) {
