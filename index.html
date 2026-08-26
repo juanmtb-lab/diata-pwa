@@ -130,10 +130,6 @@
             Diata
             <span class="text-[10px] font-normal px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">Día & Dieta</span>
           </h1>
-          <p class="text-xs text-slate-400 light:text-slate-500 flex items-center gap-1 cursor-pointer hover:text-white transition" onclick="appDb.pullCloudSync(); if(window.appUi) appUi.showToast('Sincronizando con la Nube... 🔄');" title="Haz clic para forzar sincronización">
-            <span id="connection-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-            <span id="connection-status-text">Online</span>
-          </p>
         </div>
       </div>
 
@@ -1002,14 +998,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=133"></script>
-  <script src="app.js?v=133"></script>
+  <script src="db.js?v=134"></script>
+  <script src="app.js?v=134"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v133')) caches.delete(key);
+          if (!key.includes('v134')) caches.delete(key);
         });
       });
     }
