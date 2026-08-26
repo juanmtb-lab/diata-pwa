@@ -172,35 +172,37 @@ class AppDatabase {
 
   init() {
     let products = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
-    let productsUpdated = false;
+    let recipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
+    let weekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
+    let shopping = JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]');
 
-    if (products.length === 0) {
-      products = DEFAULT_PRODUCTS;
-      productsUpdated = true;
-    } else {
-      // Garantizar que todos los productos transcritos de las fotos existan sin duplicar
-      DEFAULT_PRODUCTS.forEach(defP => {
-        const exists = products.some(p => (p.name || '').toLowerCase().trim() === defP.name.toLowerCase().trim());
-        if (!exists) {
-          products.push(defP);
-          productsUpdated = true;
-        }
-      });
+    // Garantizar que los 36 productos del catálogo predeterminado siempre existan
+    const productMap = new Map();
+    DEFAULT_PRODUCTS.forEach(p => productMap.set(p.name.toLowerCase().trim(), p));
+    products.forEach(p => {
+      if (p && p.name) productMap.set(p.name.toLowerCase().trim(), p);
+    });
+    products = Array.from(productMap.values());
+    localStorage.setItem('qr_menu_products', JSON.stringify(products));
+
+    // Garantizar las 6 recetas auténticas del usuario
+    if (!recipes || !Array.isArray(recipes) || recipes.length === 0) {
+      recipes = DEFAULT_RECIPES;
+      localStorage.setItem('qr_menu_recipes', JSON.stringify(recipes));
     }
 
-    if (productsUpdated) {
-      localStorage.setItem('qr_menu_products', JSON.stringify(products));
+    // Garantizar el menú semanal de 7 días
+    if (!weekly || !Array.isArray(weekly) || weekly.length === 0) {
+      weekly = generateInitialMenu();
+      localStorage.setItem('qr_menu_weekly', JSON.stringify(weekly));
     }
 
-    // Establecer las 6 recetas reales del usuario y limpiar recetas ficticias
-    localStorage.setItem('qr_menu_recipes', JSON.stringify(DEFAULT_RECIPES));
+    // Garantizar lista de compra inicial si está totalmente vacía
+    if (!shopping || !Array.isArray(shopping)) {
+      shopping = INITIAL_SHOPPING_LIST;
+      localStorage.setItem('qr_menu_shopping', JSON.stringify(shopping));
+    }
 
-    if (!localStorage.getItem('qr_menu_shopping')) {
-      localStorage.setItem('qr_menu_shopping', JSON.stringify(INITIAL_SHOPPING_LIST));
-    }
-    if (!localStorage.getItem('qr_menu_weekly')) {
-      localStorage.setItem('qr_menu_weekly', JSON.stringify(generateInitialMenu()));
-    }
     if (!localStorage.getItem('qr_menu_settings')) {
       localStorage.setItem('qr_menu_settings', JSON.stringify({
         n8n_url: '',
@@ -210,7 +212,7 @@ class AppDatabase {
       }));
     }
 
-    // Migración automática de categorías obsoletas (Baño -> Aseo Personal, Salsas en productos/compras -> Despensa)
+    // Migración automática de categorías obsoletas
     ['qr_menu_products', 'qr_menu_shopping'].forEach(key => {
       let raw = localStorage.getItem(key);
       if (raw && (raw.includes('Baño') || raw.includes('Salsas'))) {
@@ -224,7 +226,7 @@ class AppDatabase {
     this.initCloudSync();
   }
 
-  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (ZERO-CACHE REST ENGINE) ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (AUTO-HEALING ZERO-CACHE) ---
   initCloudSync() {
     this.cloudSyncId = 'ff8081819ff5b11001a03a13e66b1f93';
     this.cloudEndpoint = `https://api.restful-api.dev/objects/${this.cloudSyncId}`;
@@ -276,8 +278,9 @@ class AppDatabase {
       const localWeekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
 
       let needsUIRefresh = false;
+      let needsCloudRepair = false;
 
-      // 1. REPLICACIÓN MAESTRA DE LISTA DE COMPRA (Cero elementos resucitados)
+      // 1. REPLICACIÓN MAESTRA DE LISTA DE COMPRA
       if (Array.isArray(cloudData.shopping)) {
         const sanitizedCloudShopping = cloudData.shopping.map(item => ({
           id: item.id || ('s_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
@@ -295,36 +298,47 @@ class AppDatabase {
         }
       }
 
-      // 2. REPLICACIÓN DE PRODUCTOS (CATÁLOGO)
-      if (Array.isArray(cloudData.products)) {
-        const sanitizedCloudProducts = cloudData.products.map(p => ({
-          id: p.id || ('p_' + Date.now()),
-          name: p.name || 'Producto',
-          category: (p.category && p.category !== 'undefined') ? p.category : 'Despensa',
-          unit: (p.unit && p.unit !== 'undefined') ? p.unit : 'uds',
-          is_essential: p.is_essential || false
-        }));
+      // 2. REPLICACIÓN DE PRODUCTOS (FUSIÓN CON CATÁLOGO COMPLETO)
+      const cloudProducts = Array.isArray(cloudData.products) ? cloudData.products : [];
+      const mergedProductMap = new Map();
+      DEFAULT_PRODUCTS.forEach(p => mergedProductMap.set(p.name.toLowerCase().trim(), p));
+      cloudProducts.forEach(p => {
+        if (p && p.name) mergedProductMap.set(p.name.toLowerCase().trim(), p);
+      });
+      const mergedProducts = Array.from(mergedProductMap.values());
 
-        if (JSON.stringify(sanitizedCloudProducts) !== JSON.stringify(localProducts)) {
-          localStorage.setItem('qr_menu_products', JSON.stringify(sanitizedCloudProducts));
-          needsUIRefresh = true;
-        }
+      if (JSON.stringify(mergedProducts) !== JSON.stringify(localProducts)) {
+        localStorage.setItem('qr_menu_products', JSON.stringify(mergedProducts));
+        needsUIRefresh = true;
+      }
+      if (cloudProducts.length < DEFAULT_PRODUCTS.length) {
+        needsCloudRepair = true;
       }
 
-      // 3. RECETAS
-      if (Array.isArray(cloudData.recipes) && cloudData.recipes.length > 0) {
-        if (JSON.stringify(cloudData.recipes) !== JSON.stringify(localRecipes)) {
-          localStorage.setItem('qr_menu_recipes', JSON.stringify(cloudData.recipes));
-          needsUIRefresh = true;
-        }
+      // 3. RECETAS (AUTO-RECUPERACIÓN DE LAS 6 RECETAS SI LA NUBE VIENE VACÍA)
+      let recipesToUse = (Array.isArray(cloudData.recipes) && cloudData.recipes.length > 0) 
+        ? cloudData.recipes 
+        : (localRecipes.length > 0 ? localRecipes : DEFAULT_RECIPES);
+
+      if (JSON.stringify(recipesToUse) !== JSON.stringify(localRecipes)) {
+        localStorage.setItem('qr_menu_recipes', JSON.stringify(recipesToUse));
+        needsUIRefresh = true;
+      }
+      if (!cloudData.recipes || cloudData.recipes.length === 0) {
+        needsCloudRepair = true;
       }
 
-      // 4. MENÚ SEMANAL
-      if (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) {
-        if (JSON.stringify(cloudData.weekly) !== JSON.stringify(localWeekly)) {
-          localStorage.setItem('qr_menu_weekly', JSON.stringify(cloudData.weekly));
-          needsUIRefresh = true;
-        }
+      // 4. MENÚ SEMANAL (AUTO-RECUPERACIÓN DEL MENÚ DE 7 DÍAS SI LA NUBE VIENE VACÍA)
+      let weeklyToUse = (Array.isArray(cloudData.weekly) && cloudData.weekly.length > 0) 
+        ? cloudData.weekly 
+        : (localWeekly.length > 0 ? localWeekly : generateInitialMenu());
+
+      if (JSON.stringify(weeklyToUse) !== JSON.stringify(localWeekly)) {
+        localStorage.setItem('qr_menu_weekly', JSON.stringify(weeklyToUse));
+        needsUIRefresh = true;
+      }
+      if (!cloudData.weekly || cloudData.weekly.length === 0) {
+        needsCloudRepair = true;
       }
 
       if (needsUIRefresh && window.appUi && typeof window.appUi.refreshCurrentView === 'function') {
@@ -332,6 +346,11 @@ class AppDatabase {
       }
 
       this.updateSyncIndicator(true);
+
+      // Si la nube venía incompleta o vacía (ej: sin recetas o catálogo recortado), repararla en segundo plano
+      if (needsCloudRepair) {
+        await this.pushCloudSync();
+      }
     } catch (err) {
       console.warn('Pull cloud sync error:', err);
       this.updateSyncIndicator(false);
