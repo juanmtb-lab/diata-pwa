@@ -1671,6 +1671,23 @@ class AppUI {
     }
   }
 
+  forceAppUpdate() {
+    this.showToast('Actualizando a la última versión... 🚀');
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(key => caches.delete(key));
+      });
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => reg.unregister());
+      });
+    }
+    setTimeout(() => {
+      window.location.reload(true);
+    }, 400);
+  }
+
   resetToDefaults() {
     if (confirm('¿Deseas restablecer todos los datos a la configuración inicial de ejemplo?')) {
       localStorage.clear();

@@ -144,6 +144,11 @@
           <i data-lucide="download" class="w-4 h-4"></i> Instalar App
         </button>
 
+        <!-- Botón Recargar / Forzar Actualización PWA -->
+        <button onclick="appUi.forceAppUpdate()" title="Forzar actualización a la última versión" class="p-2 rounded-lg bg-slate-800 light:bg-slate-100 text-slate-300 light:text-slate-600 hover:text-emerald-400 transition">
+          <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+        </button>
+
         <!-- Selector Modo Oscuro/Claro -->
         <button id="btn-theme-toggle" class="p-2 rounded-lg bg-slate-800 light:bg-slate-100 text-slate-300 light:text-slate-600 hover:text-white transition">
           <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
@@ -997,14 +1002,14 @@
   </div>
 
   <!-- SCRIPTS PRINCIPALES -->
-  <script src="db.js?v=132"></script>
-  <script src="app.js?v=132"></script>
+  <script src="db.js?v=133"></script>
+  <script src="app.js?v=133"></script>
   <script>
     // Limpiar caches antiguos e invalidar ServiceWorker obsoleto
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (!key.includes('v132')) caches.delete(key);
+          if (!key.includes('v133')) caches.delete(key);
         });
       });
     }
