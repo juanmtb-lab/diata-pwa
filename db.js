@@ -251,7 +251,7 @@ class AppDatabase {
 
     try {
       this.isSyncing = true;
-      const cacheBustUrl = `${this.cloudEndpoint}?nocache=${Date.now()}_${Math.random()}`;
+      const cacheBustUrl = `${this.cloudEndpoint}?nocache=${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       const res = await fetch(cacheBustUrl, { cache: 'no-store' });
       if (!res.ok) {
         this.updateSyncIndicator(false);
@@ -278,21 +278,35 @@ class AppDatabase {
       const localRecipes = JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]');
       const localWeekly = JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]');
 
+      // Cargar lápidas de elementos eliminados (deleted_ids)
+      const cloudDeletedIds = Array.isArray(cloudData.deleted_ids) ? cloudData.deleted_ids : [];
+      const localDeletedIds = JSON.parse(localStorage.getItem('qr_menu_deleted_ids') || '[]');
+      const allDeletedIds = Array.from(new Set([...cloudDeletedIds, ...localDeletedIds]));
+      localStorage.setItem('qr_menu_deleted_ids', JSON.stringify(allDeletedIds));
+
       let needsUIRefresh = false;
 
-      // 1. SI LA NUBE ES MÁS RECIENTE O TIENE IGUAL TIMESTAMP: ACEPTAR EL ESTADO MAESTRO DE LA NUBE (INCLUYENDO LISTAS VACÍAS TRAS ELIMINACIÓN)
-      if (cloudUpdated >= localUpdated) {
-        // A. REPLICACIÓN DE LISTA DE COMPRA (ACEPTA LISTA VACÍA SI SE BORRÓ O LIMPIÓ)
+      // SI LA NUBE ES ESTRICTAMENTE MÁS RECIENTE QUE NUESTRO ESTADO LOCAL: ACEPTAR LA NUBE
+      if (cloudUpdated > localUpdated) {
+        // A. REPLICACIÓN DE LISTA DE COMPRA (FILTRANDO LÁPIDAS DE ELIMINADOS)
         if (Array.isArray(cloudData.shopping)) {
-          const sanitizedCloudShopping = cloudData.shopping.map(item => ({
-            id: item.id || ('s_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
-            name: item.name || 'Producto',
-            category: (item.category && item.category !== 'undefined') ? item.category : 'Despensa',
-            quantity: (item.quantity && item.quantity !== 'undefined') ? item.quantity : 1,
-            unit: (item.unit && item.unit !== 'undefined') ? item.unit : 'uds',
-            status: item.status || 'pending',
-            added_from_menu: item.added_from_menu || false
-          }));
+          const sanitizedCloudShopping = cloudData.shopping
+            .filter(item => {
+              if (!item || (!item.id && !item.name)) return false;
+              const itemId = item.id || '';
+              const itemName = (item.name || '').toLowerCase().trim();
+              if (allDeletedIds.includes(itemId) || allDeletedIds.includes(itemName)) return false;
+              return true;
+            })
+            .map(item => ({
+              id: item.id || ('s_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+              name: item.name || 'Producto',
+              category: (item.category && item.category !== 'undefined') ? item.category : 'Despensa',
+              quantity: (item.quantity && item.quantity !== 'undefined') ? item.quantity : 1,
+              unit: (item.unit && item.unit !== 'undefined') ? item.unit : 'uds',
+              status: item.status || 'pending',
+              added_from_menu: item.added_from_menu || false
+            }));
 
           if (JSON.stringify(sanitizedCloudShopping) !== JSON.stringify(localShopping)) {
             localStorage.setItem('qr_menu_shopping', JSON.stringify(sanitizedCloudShopping));
@@ -336,7 +350,7 @@ class AppDatabase {
 
         localStorage.setItem('qr_menu_last_updated', cloudUpdated.toString());
       } else if (localUpdated > cloudUpdated) {
-        // SI EL ESTADO LOCAL ES MÁS RECIENTE (se acaba de eliminar/modificar un ítem localmente), SUBIR EL NUEVO ESTADO A LA NUBE
+        // SI NUESTRO ESTADO LOCAL ES MÁS NUEVO QUE LA NUBE (se acaba de eliminar/modificar algo localmente), SUBIR A LA NUBE
         await this.pushCloudSync();
       }
 
@@ -357,8 +371,11 @@ class AppDatabase {
     const now = Date.now();
     localStorage.setItem('qr_menu_last_updated', now.toString());
 
+    const deletedIds = JSON.parse(localStorage.getItem('qr_menu_deleted_ids') || '[]');
+
     const payload = {
       updated_at: now,
+      deleted_ids: deletedIds,
       products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
       recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
       shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
@@ -415,10 +432,17 @@ class AppDatabase {
 
   addShoppingItem(item) {
     const list = this.getShoppingList();
-    const existing = list.find(i => i.name.toLowerCase() === item.name.toLowerCase() && i.status !== 'bought');
-    if (existing) {
-      existing.quantity = (parseFloat(existing.quantity) || 1) + (parseFloat(item.quantity) || 1);
-      if (item.status) existing.status = item.status;
+    const targetName = (item.name || '').toLowerCase().trim();
+    const existingIndex = list.findIndex(i => (i.name || '').toLowerCase().trim() === targetName);
+
+    // Si el producto se vuelve a añadir, quitar de las lápidas (deleted_ids)
+    let deletedIds = JSON.parse(localStorage.getItem('qr_menu_deleted_ids') || '[]');
+    deletedIds = deletedIds.filter(id => id !== targetName && id !== item.id);
+    localStorage.setItem('qr_menu_deleted_ids', JSON.stringify(deletedIds));
+
+    if (existingIndex >= 0) {
+      list[existingIndex].quantity = (parseFloat(list[existingIndex].quantity) || 1) + (parseFloat(item.quantity) || 1);
+      list[existingIndex].status = 'pending';
     } else {
       list.unshift({
         id: 's_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
@@ -449,6 +473,12 @@ class AppDatabase {
     const targetItem = currentList.find(i => i.id === id);
     const targetName = targetItem ? targetItem.name.toLowerCase().trim() : null;
 
+    // Registrar lápida para evitar resurrecciones
+    let deletedIds = JSON.parse(localStorage.getItem('qr_menu_deleted_ids') || '[]');
+    if (id && !deletedIds.includes(id)) deletedIds.push(id);
+    if (targetName && !deletedIds.includes(targetName)) deletedIds.push(targetName);
+    localStorage.setItem('qr_menu_deleted_ids', JSON.stringify(deletedIds));
+
     const list = currentList.filter(i => {
       if (i.id === id) return false;
       if (targetName && i.name && i.name.toLowerCase().trim() === targetName) return false;
@@ -460,7 +490,18 @@ class AppDatabase {
   }
 
   clearBoughtItems() {
-    const list = this.getShoppingList().filter(i => i.status !== 'bought');
+    const currentList = this.getShoppingList();
+    const boughtItems = currentList.filter(i => i.status === 'bought');
+    
+    // Registrar lápidas para todos los productos comprados limpiados
+    let deletedIds = JSON.parse(localStorage.getItem('qr_menu_deleted_ids') || '[]');
+    boughtItems.forEach(i => {
+      if (i.id && !deletedIds.includes(i.id)) deletedIds.push(i.id);
+      if (i.name && !deletedIds.includes(i.name.toLowerCase().trim())) deletedIds.push(i.name.toLowerCase().trim());
+    });
+    localStorage.setItem('qr_menu_deleted_ids', JSON.stringify(deletedIds));
+
+    const list = currentList.filter(i => i.status !== 'bought');
     this.saveShoppingList(list);
     return list;
   }
