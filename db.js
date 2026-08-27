@@ -218,10 +218,10 @@ class AppDatabase {
     this.initCloudSync();
   }
 
-  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (PROTECTED DATA ENGINE) ---
+  // --- REAL-TIME MULTI-DEVICE CLOUD SYNC ENGINE (ZERO-CACHE REALTIME ENGINE) ---
   initCloudSync() {
-    this.cloudSyncId = 'dabdacb';
-    this.cloudEndpoint = `https://extendsclass.com/api/json-storage/bin/${this.cloudSyncId}`;
+    this.cloudSyncId = 'ff8081819ff5b11001a042c938ef33f8';
+    this.cloudEndpoint = `https://api.restful-api.dev/objects/${this.cloudSyncId}`;
     this.isSyncing = false;
 
     // Pull inicial al arrancar
@@ -255,23 +255,14 @@ class AppDatabase {
 
     try {
       this.isSyncing = true;
-      const cacheBustUrl = `${this.cloudEndpoint}?nocache=${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      const res = await fetch(cacheBustUrl, { cache: 'no-store' });
+      const res = await fetch(this.cloudEndpoint, { cache: 'no-store' });
       if (!res.ok) {
         this.updateSyncIndicator(false);
         return;
       }
 
-      const rawText = await res.text();
-      let cloudData = null;
-      try {
-        const parsed = JSON.parse(rawText);
-        cloudData = (parsed && parsed.data) ? (typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data) : parsed;
-      } catch (e) {
-        this.updateSyncIndicator(false);
-        return;
-      }
-
+      const json = await res.json();
+      const cloudData = json ? (json.data || json) : null;
       if (!cloudData) return;
 
       const localProducts = JSON.parse(localStorage.getItem('qr_menu_products') || '[]');
@@ -327,7 +318,7 @@ class AppDatabase {
         needsUIRefresh = true;
       }
 
-      // 3. RECETAS (PROTECCIÓN Y AUTO-RESTAURACIÓN DE RECETAS)
+      // 3. RECETAS
       let recipesToUse = (Array.isArray(cloudData.recipes) && cloudData.recipes.length >= 6) 
         ? cloudData.recipes 
         : (localRecipes.length >= 6 ? localRecipes : DEFAULT_RECIPES);
@@ -337,7 +328,7 @@ class AppDatabase {
         needsUIRefresh = true;
       }
 
-      // 4. MENÚ SEMANAL (PROTECCIÓN Y AUTO-RESTAURACIÓN DE MENÚ)
+      // 4. MENÚ SEMANAL
       let weeklyToUse = (Array.isArray(cloudData.weekly) && cloudData.weekly.length >= 7) 
         ? cloudData.weekly 
         : (localWeekly.length >= 7 ? localWeekly : generateInitialMenu());
@@ -361,18 +352,19 @@ class AppDatabase {
   }
 
   async pushCloudSync() {
-    const now = Date.now();
-    localStorage.setItem('qr_menu_last_updated', now.toString());
-
+    this.lastMutationTime = Date.now();
     const deletedIds = JSON.parse(localStorage.getItem('qr_menu_deleted_ids') || '[]');
 
     const payload = {
-      updated_at: now,
-      deleted_ids: deletedIds,
-      products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
-      recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
-      shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
-      weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
+      name: "Diata Realtime Sync Container",
+      data: {
+        updated_at: Date.now(),
+        deleted_ids: deletedIds,
+        products: JSON.parse(localStorage.getItem('qr_menu_products') || '[]'),
+        recipes: JSON.parse(localStorage.getItem('qr_menu_recipes') || '[]'),
+        shopping: JSON.parse(localStorage.getItem('qr_menu_shopping') || '[]'),
+        weekly: JSON.parse(localStorage.getItem('qr_menu_weekly') || '[]')
+      }
     };
 
     try {
@@ -380,7 +372,7 @@ class AppDatabase {
       const res = await fetch(this.cloudEndpoint, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'text/plain'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });

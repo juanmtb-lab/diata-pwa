@@ -1,5 +1,3 @@
-const fs = require('fs');
-
 const DEFAULT_PRODUCTS = [
   { id: 'p1', name: 'Aceite de Oliva VV', category: 'Despensa', unit: 'ml', is_essential: true },
   { id: 'p2', name: 'Aguacate', category: 'Frescos', unit: 'uds', is_essential: false },
@@ -164,18 +162,22 @@ const INITIAL_WEEKLY_MENU = DAYS_OF_WEEK.map(d => ({
 }));
 
 const payload = {
-  updated_at: Date.now(),
-  products: DEFAULT_PRODUCTS,
-  recipes: DEFAULT_RECIPES,
-  shopping: INITIAL_SHOPPING_LIST,
-  weekly: INITIAL_WEEKLY_MENU
+  name: "Diata Realtime Sync Container",
+  data: {
+    updated_at: Date.now(),
+    deleted_ids: [],
+    products: DEFAULT_PRODUCTS,
+    recipes: DEFAULT_RECIPES,
+    shopping: INITIAL_SHOPPING_LIST,
+    weekly: INITIAL_WEEKLY_MENU
+  }
 };
 
-fetch('https://extendsclass.com/api/json-storage/bin/dabdacb', {
+fetch('https://api.restful-api.dev/objects/ff8081819ff5b11001a042c938ef33f8', {
   method: 'PUT',
-  headers: { 'Content-Type': 'text/plain' },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(payload)
 })
-.then(res => res.text())
-.then(data => console.log("SUCCESS POPULATING EXTENDSCLASS:", data))
-.catch(err => console.error("ERROR POPULATING EXTENDSCLASS:", err));
+.then(res => res.json())
+.then(data => console.log("SUCCESS POPULATING RESTFUL-API CONTAINER:", data.id))
+.catch(err => console.error("ERROR POPULATING RESTFUL-API:", err));
