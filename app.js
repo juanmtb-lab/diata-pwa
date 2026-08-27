@@ -222,14 +222,16 @@ class AppUI {
 
   addCustomItemToShoppingFromSearch(name) {
     if (!name) return;
+    const catSelect = document.getElementById('select-shopping-category');
+    const category = catSelect ? catSelect.value : 'Despensa';
     appDb.addShoppingItem({
       name: name,
-      category: 'Despensa',
+      category: category,
       quantity: 1,
       unit: 'uds',
       status: 'pending'
     });
-    this.showToast(`'${name}' añadido a tu Lista 🛒`);
+    this.showToast(`'${name}' añadido a la lista y al catálogo 🛒`);
     this.clearShoppingSearch();
   }
 

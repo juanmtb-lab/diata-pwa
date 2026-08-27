@@ -431,6 +431,9 @@ class AppDatabase {
   }
 
   addShoppingItem(item) {
+    if (item && item.name) {
+      this.ensureProductsExist([item]);
+    }
     const list = this.getShoppingList();
     const targetName = (item.name || '').toLowerCase().trim();
     const existingIndex = list.findIndex(i => (i.name || '').toLowerCase().trim() === targetName);
@@ -698,6 +701,7 @@ class AppDatabase {
 
     if (newAddedCount > 0) {
       localStorage.setItem('qr_menu_products', JSON.stringify(products));
+      this.pushCloudSync();
     }
     return newAddedCount;
   }
